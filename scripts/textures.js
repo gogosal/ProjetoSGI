@@ -1,37 +1,36 @@
 import * as THREE from 'three';
 
+// Cria o loader
+const textureLoader = new THREE.TextureLoader();
+
 // Marble
-const marbleBaseColorTexture = THREE.TextureLoader.load('Comb1\materials\Marble\Marble012_1K-JPG_Color.jpg');
-const marbleNormalMapTexture = THREE.TextureLoader.load('');
-const marbleroughnessMap = THREE.TextureLoader.load('');
-const marblemetalnessMap = THREE.TextureLoader.load('');
+const marbleBaseColorTexture = textureLoader.load('materials/Comb1/Marble/Marble012_1K-JPG_Color.jpg');
+const marbleNormalMapTexture = textureLoader.load('materials/Comb1/Marble/Marble012_1K-JPG_NormalGL.jpg');
+const marbleRoughnessMap = textureLoader.load('materials/Comb1/Marble/Marble012_1K-JPG_Roughness.jpg');
 
 // Gold
-const goldBaseColorTexture = THREE.TextureLoader.load('');
-const goldNormalMapTexture = THREE.TextureLoader.load('');
-const goldroughnessMap = THREE.TextureLoader.load('');
-const goldmetalnessMap = THREE.TextureLoader.load('');
+const goldBaseColorTexture = textureLoader.load('materials/Comb1/Gold/Metal042A_1K-JPG_Color.jpg');
+const goldNormalMapTexture = textureLoader.load('materials/Comb1/Gold/Metal042A_1K-JPG_NormalGL.jpg');
+const goldRoughnessMap = textureLoader.load('materials/Comb1/Gold/Metal042A_1K-JPG_Roughness.jpg');
+const goldMetalnessMap = textureLoader.load('materials/Comb1/Gold/Metal042A_1K-JPG_Metalness.jpg');
 
+// Marble material
 const marble = new THREE.MeshStandardMaterial({
     map: marbleBaseColorTexture,
-    transparent: transparent,
-    alphaTest: 0.0,
     normalMap: marbleNormalMapTexture,
-    aoMapIntensity: 1,
-    roughnessMap: marbleroughnessMap,
-    roughness: 1,
-    metalnessMap: marblemetalnessMap,
-    metalness: 1,
+    roughnessMap: marbleRoughnessMap,
+    roughness: 0.5,
+    side: THREE.DoubleSide,
 });
 
+// Gold material
 const gold = new THREE.MeshStandardMaterial({
     map: goldBaseColorTexture,
-    transparent: transparent,
-    alphaTest: 0.0,
     normalMap: goldNormalMapTexture,
-    aoMapIntensity: 1,
-    roughnessMap: goldOrmTexture,
-    roughness: 1,
-    metalnessMap: goldOrmTexture,
-    metalness: 1,
+    roughnessMap: goldRoughnessMap,
+    metalnessMap: goldMetalnessMap,
+    roughness: 0.5,
+    metalness: 0.7,
 });
+
+export { marble, gold };
