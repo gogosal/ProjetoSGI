@@ -16,12 +16,12 @@ const videoCloseButton = document.getElementById('video-close-button');
 
 helpButton.addEventListener('click', () => {
     overlay.classList.add('show');
-    document.body.style.overflow = 'hidden'; 
+    document.body.style.overflow = 'hidden';
 });
 
 helpCloseButton.addEventListener('click', () => {
     overlay.classList.remove('show');
-    document.body.style.overflow = ''; 
+    document.body.style.overflow = '';
 });
 
 annotationsToggle.addEventListener('click', () => {
@@ -29,10 +29,10 @@ annotationsToggle.addEventListener('click', () => {
     const newState = !isPressed;
     annotationsToggle.setAttribute('aria-pressed', String(newState));
     overlay.classList.toggle('show-annotations');
-    
+
     const image1 = overlay.querySelector('img[alt="Imagem de ajuda"]');
     const image2 = overlay.querySelector('img[alt="Informação sem filtros"]');
-    
+
     if (newState) {
         image1.style.display = 'none';
         image2.style.display = 'block';
@@ -40,7 +40,7 @@ annotationsToggle.addEventListener('click', () => {
         image1.style.display = 'block';
         image2.style.display = 'none';
     }
-    
+
     const textSpan = annotationsToggle.querySelector('span');
     if (textSpan) {
         textSpan.textContent = newState ? 'Mostrar com Anotações' : 'Mostrar sem Anotações';
@@ -65,7 +65,7 @@ videoCloseButton.addEventListener('click', () => {
         if (e.target === overlayEl) {
             overlayEl.classList.remove('show');
             document.body.style.overflow = '';
-            
+
             if (overlayEl === videoOverlay) {
                 const video = overlayEl.querySelector('video');
                 video.pause();
