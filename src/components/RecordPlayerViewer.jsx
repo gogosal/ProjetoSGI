@@ -6,12 +6,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { materialPresets } from '@/lib/textures';
 import { loadDefaultHDRI } from '@/lib/hdri';
 import { loadRecordPlayerModel, getRecordPlayerParts } from '@/lib/models';
+import { RaycastManager } from '@/lib/raycast';
 
 export default function RecordPlayerViewer() {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const modelPartsRef = useRef({});
     const originalMaterialsRef = useRef({}); // Guardar materiais originais
+    const raycastManagerRef = useRef(null);
     const [currentPreset, setCurrentPreset] = useState('default');
     const [showPresetMenu, setShowPresetMenu] = useState(false);
 
@@ -42,7 +44,7 @@ export default function RecordPlayerViewer() {
 
         setCurrentPreset(presetName);
         setShowPresetMenu(false);
-    }, []); // Sem dependências - função estável
+    }, []);
 
     useEffect(() => {
         if (!canvasRef.current || !containerRef.current) return;
@@ -53,6 +55,7 @@ export default function RecordPlayerViewer() {
         // Configuração da cena
         const scene = new THREE.Scene();
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
 
         const updateSize = () => {
             const width = container.clientWidth;
@@ -67,7 +70,6 @@ export default function RecordPlayerViewer() {
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.8;
 
-        const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
         camera.position.set(6, 4, 7);
         camera.lookAt(0, 0, 0);
 
@@ -85,6 +87,10 @@ export default function RecordPlayerViewer() {
         const pointLight = new THREE.PointLight(0xffffff, 5);
         pointLight.position.set(5, 3, 5);
         scene.add(pointLight);
+
+        // Inicializar Raycast Manager
+        const raycastManager = new RaycastManager(canvas, camera, scene);
+        raycastManagerRef.current = raycastManager;
 
         // Carregamento HDRI
         loadDefaultHDRI().then((hdr) => {
@@ -108,6 +114,9 @@ export default function RecordPlayerViewer() {
 
             // Guardar referências das partes do modelo
             modelPartsRef.current = { base, feet, agulha, vinylBase };
+
+            // Adicionar modelo ao raycast manager
+            raycastManager.addClickableObject(model);
         }).catch((error) => {
             console.error('Erro ao carregar modelo:', error);
         });
@@ -130,6 +139,9 @@ export default function RecordPlayerViewer() {
         // Cleanup
         return () => {
             window.removeEventListener('resize', handleResize);
+            if (raycastManagerRef.current) {
+                raycastManagerRef.current.dispose();
+            }
             renderer.dispose();
             controls.dispose();
         };
