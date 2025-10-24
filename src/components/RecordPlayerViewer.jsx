@@ -7,6 +7,7 @@ import { materialPresets } from '@/lib/textures';
 import { loadDefaultHDRI } from '@/lib/hdri';
 import { loadRecordPlayerModel, getRecordPlayerParts } from '@/lib/models';
 import { RaycastManager } from '@/lib/raycast';
+import { AnimationManager, handleObjectClick } from '@/lib/animations';
 
 export default function RecordPlayerViewer() {
     const canvasRef = useRef(null);
@@ -14,8 +15,19 @@ export default function RecordPlayerViewer() {
     const modelPartsRef = useRef({});
     const originalMaterialsRef = useRef({}); // Guardar materiais originais
     const raycastManagerRef = useRef(null);
+    const animationManagerRef = useRef(null); // Gestor de animações
     const [currentPreset, setCurrentPreset] = useState('default');
     const [showPresetMenu, setShowPresetMenu] = useState(false);
+
+    function applyMaterials(objects, materials) {
+        if (!objects || !materials) return;
+
+        for (const key of Object.keys(objects)) {
+            if (objects[key] && materials[key]) {
+                objects[key].material = materials[key];
+            }
+        }
+    }
 
     // Função para aplicar preset de material - usando useCallback para evitar re-renders
     const applyMaterialPreset = useCallback((presetName) => {
@@ -26,22 +38,16 @@ export default function RecordPlayerViewer() {
 
         // Se for 'default', usar os materiais originais salvos
         if (presetName === 'default') {
-            const originalMaterials = originalMaterialsRef.current;
-            if (base && originalMaterials.base) base.material = originalMaterials.base;
-            if (feet && originalMaterials.feet) feet.material = originalMaterials.feet;
-            if (agulha && originalMaterials.agulha) agulha.material = originalMaterials.agulha;
-            if (vinylBase && originalMaterials.vinylBase) vinylBase.material = originalMaterials.vinylBase;
+            applyMaterials(
+                { base, feet, agulha, vinylBase },
+                originalMaterialsRef.current
+            );
         } else {
-            // Caso contrário, usar os materiais do preset
-            const materials = preset.materials;
-            if (!materials) return;
-
-            if (base && materials.base) base.material = materials.base;
-            if (feet && materials.feet) feet.material = materials.feet;
-            if (agulha && materials.agulha) agulha.material = materials.agulha;
-            if (vinylBase && materials.vinylBase) vinylBase.material = materials.vinylBase;
+            applyMaterials(
+                { base, feet, agulha, vinylBase },
+                preset.materials
+            );
         }
-
         setCurrentPreset(presetName);
         setShowPresetMenu(false);
     }, []);
@@ -92,6 +98,14 @@ export default function RecordPlayerViewer() {
         const raycastManager = new RaycastManager(canvas, camera, scene);
         raycastManagerRef.current = raycastManager;
 
+        // Adicionar listener para cliques em objetos
+        const handleClick = (object) => {
+            if (animationManagerRef.current) {
+                handleObjectClick(object, animationManagerRef.current);
+            }
+        };
+        raycastManager.onClick = handleClick;
+
         // Carregamento HDRI
         loadDefaultHDRI().then((hdr) => {
             scene.environment = hdr;
@@ -100,8 +114,9 @@ export default function RecordPlayerViewer() {
             console.error('Erro ao carregar HDRI:', error);
         });
 
-        // Carregamento do modelo
-        loadRecordPlayerModel().then((model) => {
+        // Carregamento do modelo (com animações)
+        loadRecordPlayerModel(true).then((gltf) => {
+            const model = gltf.scene;
             scene.add(model);
 
             const { base, feet, agulha, vinylBase } = getRecordPlayerParts(model);
@@ -115,7 +130,11 @@ export default function RecordPlayerViewer() {
             // Guardar referências das partes do modelo
             modelPartsRef.current = { base, feet, agulha, vinylBase };
 
-            // Adicionar modelo ao raycast manager
+            // Animações do Modelo
+            const animationManager = new AnimationManager(model, gltf);
+            animationManagerRef.current = animationManager;
+
+            // Raycast
             raycastManager.addClickableObject(model);
         }).catch((error) => {
             console.error('Erro ao carregar modelo:', error);
@@ -125,6 +144,12 @@ export default function RecordPlayerViewer() {
         function render() {
             requestAnimationFrame(render);
             controls.update();
+
+            // Atualizar animações
+            if (animationManagerRef.current) {
+                animationManagerRef.current.update();
+            }
+
             renderer.render(scene, camera);
         }
         render();
@@ -142,10 +167,13 @@ export default function RecordPlayerViewer() {
             if (raycastManagerRef.current) {
                 raycastManagerRef.current.dispose();
             }
+            if (animationManagerRef.current) {
+                animationManagerRef.current.dispose();
+            }
             renderer.dispose();
             controls.dispose();
         };
-    }, []); // Removida a dependência - só executa uma vez
+    }, []);
 
     return (
         <div ref={containerRef} className="w-full h-full">

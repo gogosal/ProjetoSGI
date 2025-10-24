@@ -6,10 +6,11 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
  * @param {Object} options - Opções de carregamento
  * @param {number} options.scale - Escala do modelo (padrão: 1)
  * @param {Array} options.position - Posição [x, y, z] (padrão: [0, 0, 0])
- * @returns {Promise<THREE.Group>}
+ * @param {boolean} options.returnGltf - Se deve retornar o objeto gltf completo (padrão: false)
+ * @returns {Promise<THREE.Group|Object>}
  */
 export function loadModel(path, options = {}) {
-    const { scale = 1, position = [0, 0, 0] } = options;
+    const { scale = 1, position = [0, 0, 0], returnGltf = false } = options;
 
     return new Promise((resolve, reject) => {
         const loader = new GLTFLoader();
@@ -19,7 +20,13 @@ export function loadModel(path, options = {}) {
                 const model = gltf.scene;
                 model.scale.set(scale, scale, scale);
                 model.position.set(...position);
-                resolve(model);
+
+                // Se returnGltf for true, retorna o objeto completo com animações
+                if (returnGltf) {
+                    resolve(gltf);
+                } else {
+                    resolve(model);
+                }
             },
             undefined,
             (error) => {
@@ -31,12 +38,14 @@ export function loadModel(path, options = {}) {
 
 /**
  * Carrega o modelo do gira-discos
- * @returns {Promise<THREE.Group>}
+ * @param {boolean} withAnimations - Se deve retornar com animações (padrão: false)
+ * @returns {Promise<THREE.Group|Object>}
  */
-export async function loadRecordPlayerModel() {
-    return loadModel('/models/RecordPlayer.glb', {
+export async function loadRecordPlayerModel(withAnimations = false) {
+    return loadModel('/models/RPlayer.glb', {
         scale: 12,
-        position: [0, 0, 0]
+        position: [0, 0, 0],
+        returnGltf: withAnimations
     });
 }
 
