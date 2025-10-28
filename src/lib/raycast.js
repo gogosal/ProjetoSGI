@@ -22,6 +22,8 @@ export class RaycastManager {
     }
 
     onMouseDown(event) {
+        if (event.button !== 0) return; // Faz com que apenas o botão esquerdo funcione
+
         const rect = this.canvas.getBoundingClientRect();
         this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;

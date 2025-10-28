@@ -17,5 +17,5 @@ export function loadHDRI(path) {
 }
 
 export async function loadDefaultHDRI() {
-    return loadHDRI('/textures/hdr/studio_small_09_4k.hdr');
+    return loadHDRI('/textures/hdr/studio_small_09_2k.hdr');
 }

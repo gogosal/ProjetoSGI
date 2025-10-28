@@ -18,7 +18,7 @@ export class AnimationManager {
         this.objectStates = {};
     }
 
-    playAnimation(name, { loop = false, timeScale = 1, clampWhenFinished = true } = {}) {
+    playAnimation(name, { loop = false, timeScale = 1, clampWhenFinished = true, startAtEnd = false } = {}) {
         if (!this.mixer) return console.warn('⚠️ Nenhum mixer de animação disponível');
         const clip = this.animations[name];
         if (!clip) {
@@ -30,9 +30,18 @@ export class AnimationManager {
         this.currentActions[name]?.stop();
 
         const action = this.mixer.clipAction(clip);
-        Object.assign(action, { timeScale, clampWhenFinished });
+        action.clampWhenFinished = clampWhenFinished;
         action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce);
-        action.reset().play();
+        action.reset();
+
+        const shouldStartAtEnd = startAtEnd && clip.duration;
+        if (shouldStartAtEnd) {
+            const epsilon = 1e-4;
+            action.time = Math.max(clip.duration - epsilon, 0);
+        }
+
+        action.timeScale = timeScale;
+        action.play();
 
         this.currentActions[name] = action;
         console.log(`▶️ Reproduzindo animação: ${name}`);
@@ -75,8 +84,9 @@ export class AnimationManager {
 /* Mapeamento de objetos e suas animações padrão */
 export const animationMappings = {
     DustCover: {
-        animations: ['Open', 'Close'], // lista de animações para alternar
-        options: { loop: false, timeScale: 1, clampWhenFinished: true }
+        animations: ['Open'],
+        options: { loop: false, timeScale: 1, clampWhenFinished: true },
+        toggleReversed: true
     },
 };
 
@@ -86,18 +96,59 @@ export function handleObjectClick(object, animationManager) {
 
     let current = object;
     let mapping = null;
+    let stateKey = object.name;
 
-    while (current && !mapping) {
-        mapping = animationMappings[current.name];
-        current = mapping ? current : current.parent;
+    while (current) {
+        const candidate = animationMappings[current.name];
+        if (candidate) {
+            mapping = candidate;
+            stateKey = current.name;
+            break;
+        }
+        current = current.parent;
     }
 
     if (mapping) {
-        const state = animationManager.objectStates[object.name] || 0;
-        const animationName = mapping.animations[state];
-        animationManager.playAnimation(animationName, mapping.options);
+        const animationNames = Array.isArray(mapping.animations)
+            ? mapping.animations
+            : mapping.animation
+                ? [mapping.animation]
+                : [];
 
-        // Alterna o estado: 0 → 1, 1 → 0
-        animationManager.objectStates[object.name] = (state + 1) % mapping.animations.length;
+        if (!animationNames.length) {
+            console.warn(`⚠️ Nenhuma animação configurada para "${stateKey}".`);
+            return;
+        }
+
+        const rawState = animationManager.objectStates[stateKey];
+        const state = typeof rawState === 'number'
+            ? { index: rawState, reversed: false }
+            : {
+                index: rawState?.index ?? 0,
+                reversed: rawState?.reversed ?? false
+            };
+
+        const animationName = animationNames[state.index] ?? animationNames[0];
+        const baseOptions = mapping.options || {};
+        const baseTimeScale = baseOptions.timeScale ?? 1;
+        const isReversed = mapping.toggleReversed ? state.reversed : false;
+
+        const playOptions = {
+            ...baseOptions,
+            timeScale: isReversed
+                ? -Math.abs(baseTimeScale || 1)
+                : Math.abs(baseTimeScale || 1),
+            startAtEnd: isReversed
+        };
+
+        // Executa com direção baseada no estado atual
+        animationManager.playAnimation(animationName, playOptions);
+
+        const nextState = {
+            index: animationNames.length > 1 ? (state.index + 1) % animationNames.length : 0,
+            reversed: mapping.toggleReversed ? !isReversed : false
+        };
+
+        animationManager.objectStates[stateKey] = nextState;
     }
 }
