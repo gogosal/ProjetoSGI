@@ -84,7 +84,17 @@ export class AnimationManager {
 /* Mapeamento de objetos e suas animações padrão */
 export const animationMappings = {
     DustCover: {
-        animations: ['Open'],
+        animations: ['OpenDustCover'],
+        options: { loop: false, timeScale: 1, clampWhenFinished: true },
+        toggleReversed: true
+    },
+    Gaveta: {
+        animations: ['OpenDrawer'],
+        options: { loop: false, timeScale: 1, clampWhenFinished: true },
+        toggleReversed: true
+    },
+    Pickup: {
+        animations: ['Play'],
         options: { loop: false, timeScale: 1, clampWhenFinished: true },
         toggleReversed: true
     },

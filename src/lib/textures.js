@@ -3,6 +3,9 @@ import * as THREE from 'three';
 // Cria o loader
 const textureLoader = new THREE.TextureLoader();
 
+const defaultPresetThumbnail = '/images/Wood.png';
+const marblePresetThumbnail = '/images/Marble.png';
+
 // Marble textures
 const marbleBaseColorTexture = textureLoader.load('/materials/Comb1/Marble/Marble012_1K-JPG_Color.jpg');
 const marbleNormalMapTexture = textureLoader.load('/materials/Comb1/Marble/Marble012_1K-JPG_NormalGL.jpg');
@@ -69,7 +72,8 @@ export const materialPresets = {
         name: 'Original',
         description: 'Material original do modelo',
         icon: '🎨',
-        materials: null // Será preenchido com os materiais originais
+        materials: null, // Será preenchido com os materiais originais
+        thumbnail: defaultPresetThumbnail
     },
     luxo: {
         name: 'Luxo',
@@ -80,7 +84,8 @@ export const materialPresets = {
             feet: gold,
             agulha: gold,
             vinylBase: gold
-        }
+        },
+        thumbnail: marblePresetThumbnail
     },
     moderno: {
         name: 'Moderno',
@@ -91,7 +96,8 @@ export const materialPresets = {
             feet: chrome,
             agulha: chrome,
             vinylBase: chrome
-        }
+        },
+        thumbnail: defaultPresetThumbnail
     },
     vintage: {
         name: 'Vintage',
@@ -102,7 +108,8 @@ export const materialPresets = {
             feet: copper,
             agulha: copper,
             vinylBase: copper
-        }
+        },
+        thumbnail: defaultPresetThumbnail
     }
 };
 

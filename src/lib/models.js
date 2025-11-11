@@ -42,7 +42,7 @@ export function loadModel(path, options = {}) {
  * @returns {Promise<THREE.Group|Object>}
  */
 export async function loadRecordPlayerModel(withAnimations = false) {
-    return loadModel('/models/RecPlayer.glb', {
+    return loadModel('/models/Final.glb', {
         scale: 12,
         position: [0, 0, 0],
         returnGltf: withAnimations
