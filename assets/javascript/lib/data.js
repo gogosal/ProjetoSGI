@@ -1,5 +1,3 @@
-import { ShieldCheck, Truck, RotateCcw } from "lucide-react";
-
 export const ratingDistribution = [
     { stars: 5, percentage: 45 },
     { stars: 4, percentage: 23 },
@@ -64,7 +62,29 @@ export const highlights = [
 ];
 
 export const badges = [
-    { icon: ShieldCheck, label: "3 anos de garantia premium" },
-    { icon: Truck, label: "Entrega rastreada e segurada" },
-    { icon: RotateCcw, label: "Calibração gratuita durante 30 dias" },
+    { icon: "shield-check", label: "3 anos de garantia premium" },
+    { icon: "truck", label: "Entrega rastreada e segurada" },
+    { icon: "rotate-ccw", label: "Calibração gratuita durante 30 dias" },
+];
+
+const placeholderImage = (colorFrom, colorTo) =>
+    `https://placehold.co/320x200/${colorFrom}/${colorTo}.png?text=%20`;
+
+export const suggestedProducts = [
+    {
+        id: "speakers",
+        title: "Colunas activas Belem S2",
+        price: "499,00 €",
+        description: "Bluetooth aptX, DAC integrado e acabamento em nogueira mate.",
+        badge: "Entrega 48h",
+        image: placeholderImage("111827", "0f172a"),
+    },
+    {
+        id: "preamp",
+        title: "Pré-amplificador phono Aurora",
+        price: "229,00 €",
+        description: "Compatível MM/MC com bypass HT e ajuste de ganho.",
+        badge: "Mais vendido",
+        image: placeholderImage("0f172a", "1d4ed8"),
+    },
 ];

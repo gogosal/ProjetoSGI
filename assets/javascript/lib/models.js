@@ -1,4 +1,4 @@
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
 /**
  * Carrega um modelo GLTF/GLB e retorna uma Promise
@@ -41,8 +41,10 @@ export function loadModel(path, options = {}) {
  * @param {boolean} withAnimations - Se deve retornar com animações (padrão: false)
  * @returns {Promise<THREE.Group|Object>}
  */
+const modelUrl = new URL("../../models/Final.glb", import.meta.url).href;
+
 export async function loadRecordPlayerModel(withAnimations = false) {
-    return loadModel('/models/Final.glb', {
+    return loadModel(modelUrl, {
         scale: 12,
         position: [0, 0, 0],
         returnGltf: withAnimations

@@ -1,21 +1,37 @@
-import * as THREE from 'three';
+import * as THREE from "three";
 
-// Cria o loader
 const textureLoader = new THREE.TextureLoader();
 
-const defaultPresetThumbnail = '/images/Wood.png';
-const marblePresetThumbnail = '/images/Marble.png';
+const assetUrl = (relativePath) =>
+    new URL(`../../textures/${relativePath}`, import.meta.url).href;
 
-// Marble textures
-const marbleBaseColorTexture = textureLoader.load('/materials/Comb1/Marble/Marble012_1K-JPG_Color.jpg');
-const marbleNormalMapTexture = textureLoader.load('/materials/Comb1/Marble/Marble012_1K-JPG_NormalGL.jpg');
-const marbleRoughnessMap = textureLoader.load('/materials/Comb1/Marble/Marble012_1K-JPG_Roughness.jpg');
+const imageUrl = (relativePath) =>
+    new URL(`../../images/${relativePath}`, import.meta.url).href;
 
-// Gold textures
-const goldBaseColorTexture = textureLoader.load('/materials/Comb1/Gold/Metal042A_1K-JPG_Color.jpg');
-const goldNormalMapTexture = textureLoader.load('/materials/Comb1/Gold/Metal042A_1K-JPG_NormalGL.jpg');
-const goldRoughnessMap = textureLoader.load('/materials/Comb1/Gold/Metal042A_1K-JPG_Roughness.jpg');
-const goldMetalnessMap = textureLoader.load('/materials/Comb1/Gold/Metal042A_1K-JPG_Metalness.jpg');
+const loadTexture = (relativePath, { colorSpace = THREE.LinearSRGBColorSpace } = {}) => {
+    const texture = textureLoader.load(assetUrl(relativePath));
+    texture.flipY = false; // Align textures with glTF UV convention
+    texture.colorSpace = colorSpace;
+    return texture;
+};
+
+const defaultPresetThumbnail = imageUrl("Wood.png");
+const marblePresetThumbnail = imageUrl("Marble.png");
+
+const marbleBaseColorTexture = loadTexture(
+    "materials/Comb1/Marble/Marble012_1K-JPG_Color.jpg",
+    { colorSpace: THREE.SRGBColorSpace },
+);
+const marbleNormalMapTexture = loadTexture("materials/Comb1/Marble/Marble012_1K-JPG_NormalGL.jpg");
+const marbleRoughnessMap = loadTexture("materials/Comb1/Marble/Marble012_1K-JPG_Roughness.jpg");
+
+const goldBaseColorTexture = loadTexture(
+    "materials/Comb1/Gold/Metal042A_1K-JPG_Color.jpg",
+    { colorSpace: THREE.SRGBColorSpace },
+);
+const goldNormalMapTexture = loadTexture("materials/Comb1/Gold/Metal042A_1K-JPG_NormalGL.jpg");
+const goldRoughnessMap = loadTexture("materials/Comb1/Gold/Metal042A_1K-JPG_Roughness.jpg");
+const goldMetalnessMap = loadTexture("materials/Comb1/Gold/Metal042A_1K-JPG_Metalness.jpg");
 
 // Marble material
 const marble = new THREE.MeshStandardMaterial({

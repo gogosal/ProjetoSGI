@@ -1,9 +1,9 @@
-import * as THREE from 'three';
-import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
+import * as THREE from "three";
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 
 export function loadHDRI(path) {
     return new Promise((resolve, reject) => {
-        new HDRLoader()
+        new RGBELoader()
             .load(
                 path,
                 (texture) => {
@@ -16,6 +16,9 @@ export function loadHDRI(path) {
     });
 }
 
+const assetUrl = (relativePath) =>
+    new URL(`../../textures/${relativePath}`, import.meta.url).href;
+
 export async function loadDefaultHDRI() {
-    return loadHDRI('/textures/hdr/studio_small_09_2k.hdr');
+    return loadHDRI(assetUrl('hdr/studio_small_09_2k.hdr'));
 }
