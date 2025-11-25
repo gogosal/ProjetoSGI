@@ -78,7 +78,7 @@ export class RecordPlayerViewer {
 
             if (hdr) {
                 this.scene.environment = hdr;
-                this.scene.background = hdr;
+                this.scene.background = new THREE.Color(0xffffff);
             }
 
             if (gltf) {

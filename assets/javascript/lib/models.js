@@ -1,14 +1,24 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
-/**
- * Carrega um modelo GLTF/GLB e retorna uma Promise
- * @param {string} path - Caminho para o arquivo .glb ou .gltf
- * @param {Object} options - Opções de carregamento
- * @param {number} options.scale - Escala do modelo (padrão: 1)
- * @param {Array} options.position - Posição [x, y, z] (padrão: [0, 0, 0])
- * @param {boolean} options.returnGltf - Se deve retornar o objeto gltf completo (padrão: false)
- * @returns {Promise<THREE.Group|Object>}
- */
+function normalizeMaterialTransparency(obj) {
+    if (!obj || !obj.material) return;
+
+    const updateMaterial = (material) => {
+        if (!material) return;
+        if (material.opacity < 1 || material.alphaMode === "BLEND" || material.transmission > 0) {
+            material.transparent = true;
+            material.depthWrite = false;
+        }
+        material.needsUpdate = true;
+    };
+
+    if (Array.isArray(obj.material)) {
+        obj.material.forEach(updateMaterial);
+    } else {
+        updateMaterial(obj.material);
+    }
+}
+
 export function loadModel(path, options = {}) {
     const { scale = 1, position = [0, 0, 0], returnGltf = false } = options;
 
@@ -20,6 +30,12 @@ export function loadModel(path, options = {}) {
                 const model = gltf.scene;
                 model.scale.set(scale, scale, scale);
                 model.position.set(...position);
+
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        normalizeMaterialTransparency(child);
+                    }
+                });
 
                 // Se returnGltf for true, retorna o objeto completo com animações
                 if (returnGltf) {
@@ -36,11 +52,6 @@ export function loadModel(path, options = {}) {
     });
 }
 
-/**
- * Carrega o modelo do gira-discos
- * @param {boolean} withAnimations - Se deve retornar com animações (padrão: false)
- * @returns {Promise<THREE.Group|Object>}
- */
 const modelUrl = new URL("../../models/Final.glb", import.meta.url).href;
 
 export async function loadRecordPlayerModel(withAnimations = false) {
@@ -51,11 +62,6 @@ export async function loadRecordPlayerModel(withAnimations = false) {
     });
 }
 
-/**
- * Obtém partes específicas do modelo do gira-discos
- * @param {THREE.Group} model - O modelo carregado
- * @returns {Object} Objeto com as partes do modelo
- */
 export function getRecordPlayerParts(model) {
     return {
         base: model.getObjectByName('Base'),

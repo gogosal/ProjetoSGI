@@ -10,7 +10,7 @@ const imageUrl = (relativePath) =>
 
 const loadTexture = (relativePath, { colorSpace = THREE.LinearSRGBColorSpace } = {}) => {
     const texture = textureLoader.load(assetUrl(relativePath));
-    texture.flipY = false; // Align textures with glTF UV convention
+    texture.flipY = false;
     texture.colorSpace = colorSpace;
     return texture;
 };
@@ -87,14 +87,12 @@ export const materialPresets = {
     default: {
         name: 'Original',
         description: 'Material original do modelo',
-        icon: '🎨',
-        materials: null, // Será preenchido com os materiais originais
+        materials: null,
         thumbnail: defaultPresetThumbnail
     },
     luxo: {
         name: 'Luxo',
         description: 'Mármore e Ouro',
-        icon: '✨',
         materials: {
             base: marble,
             feet: gold,
@@ -106,7 +104,6 @@ export const materialPresets = {
     moderno: {
         name: 'Moderno',
         description: 'Chrome e Plástico',
-        icon: '🔮',
         materials: {
             base: plastic,
             feet: chrome,
@@ -118,7 +115,6 @@ export const materialPresets = {
     vintage: {
         name: 'Vintage',
         description: 'Madeira e Cobre',
-        icon: '🪵',
         materials: {
             base: wood,
             feet: copper,

@@ -67,24 +67,21 @@ export const badges = [
     { icon: "rotate-ccw", label: "Calibração gratuita durante 30 dias" },
 ];
 
-const placeholderImage = (colorFrom, colorTo) =>
-    `https://placehold.co/320x200/${colorFrom}/${colorTo}.png?text=%20`;
-
 export const suggestedProducts = [
     {
-        id: "speakers",
-        title: "Colunas activas Belem S2",
-        price: "499,00 €",
-        description: "Bluetooth aptX, DAC integrado e acabamento em nogueira mate.",
+        id: "talbe1",
+        title: "Mesa de cabeceira estilo retro vintage, Adil",
+        price: "45,32 €",
+        description: "A mesa de cabeceira estilo retro Adil. Se é fã de design vintage, vai adorar a mesa de cabeceira Adil, proveniente da coleção de quarto para criança Adil.",
         badge: "Entrega 48h",
-        image: placeholderImage("111827", "0f172a"),
+        image: "../assets/images/MesaDeCabeceira1.jpg",
     },
     {
-        id: "preamp",
-        title: "Pré-amplificador phono Aurora",
-        price: "229,00 €",
-        description: "Compatível MM/MC com bypass HT e ajuste de ganho.",
+        id: "table2",
+        title: "Mesa de cabeceira, Volga",
+        price: "90,55 €",
+        description: "A mesa de cabeceira Volga carateriza-se pelas linhas direitas e elegantes. Adoramos a combinação das matérias, madeira e aço. Vai encontrar facilmente o seu lugar num quarto.",
         badge: "Mais vendido",
-        image: placeholderImage("0f172a", "1d4ed8"),
+        image: "../assets/images/MesaDeCabeceira2.jpg",
     },
 ];
