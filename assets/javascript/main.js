@@ -208,7 +208,8 @@ function renderRatingSummary() {
         .filter(({ stars }) => stars >= 4)
         .reduce((total, { percentage }) => total + percentage, 0);
 
-    setTextSafe($id("rating-text"), `${average.toFixed(1)} · ${reviewCount} avaliações`);
+    setTextSafe($id("rating-text1"), `${average.toFixed(1)} ·`);
+    setTextSafe($id("rating-text2"), ` ${reviewCount} avaliações`);
     setTextSafe($id("average-rating-large"), average.toFixed(1));
     setTextSafe($id("rating-count-secondary"), `${reviewCount} avaliações totais`);
     setTextSafe($id("rating-recommendation"), `${recommendationPercent}% recomendam este artigo`);
