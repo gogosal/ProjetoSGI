@@ -18,7 +18,16 @@ export class AnimationManager {
         this.objectStates = {};
     }
 
-    playAnimation(name, { loop = false, timeScale = 1, clampWhenFinished = true, startAtEnd = false } = {}) {
+    playAnimation(
+        name,
+        {
+            loop = false,
+            timeScale = 1,
+            clampWhenFinished = true,
+            startAtEnd = false,
+            onComplete = null,
+        } = {}
+    ) {
         if (!this.mixer) return console.warn('⚠️ Nenhum mixer de animação disponível');
         const clip = this.animations[name];
         if (!clip) {
@@ -43,6 +52,16 @@ export class AnimationManager {
         action.timeScale = timeScale;
         action.play();
 
+        if (typeof onComplete === 'function') {
+            const handleFinished = event => {
+                if (event.action === action) {
+                    this.mixer.removeEventListener('finished', handleFinished);
+                    onComplete(event);
+                }
+            };
+            this.mixer.addEventListener('finished', handleFinished);
+        }
+
         this.currentActions[name] = action;
         console.log(`▶️ Reproduzindo animação: ${name}`);
         return action;
@@ -54,6 +73,26 @@ export class AnimationManager {
             action.stop();
             delete this.currentActions[name];
         }
+    }
+
+    pauseAnimation(name) {
+        const action = this.currentActions[name];
+        if (action) {
+            action.paused = true;
+        }
+        return action;
+    }
+
+    resumeAnimation(name, { timeScale } = {}) {
+        const action = this.currentActions[name];
+        if (action) {
+            if (typeof timeScale === 'number') {
+                action.timeScale = timeScale;
+            }
+            action.paused = false;
+            action.play();
+        }
+        return action;
     }
 
     stopAllAnimations() {
@@ -84,21 +123,42 @@ export class AnimationManager {
 /* Mapeamento de objetos e suas animações padrão */
 export const animationMappings = {
     DustCover: {
-        animations: ['OpenDustCover'],
+        animations: ['Open.001'],
         options: { loop: false, timeScale: 1, clampWhenFinished: true },
         toggleReversed: true
     },
     Gaveta: {
-        animations: ['OpenDrawer'],
+        animations: ['Open'],
         options: { loop: false, timeScale: 1, clampWhenFinished: true },
         toggleReversed: true
     },
     Pickup: {
         animations: ['Play'],
         options: { loop: false, timeScale: 1, clampWhenFinished: true },
-        toggleReversed: true
+        toggleReversed: true,
+        chainOnComplete: {
+            animationName: 'PlayMusic',
+            options: { loop: true, timeScale: 1, clampWhenFinished: true },
+            pauseWhenReversed: true
+        }
     },
 };
+
+function triggerChainedAnimation(animationManager, chainConfig) {
+    if (!chainConfig?.animationName) return;
+    const resumeOptions = chainConfig.options || {};
+    const wasResumed = animationManager.resumeAnimation(chainConfig.animationName, resumeOptions);
+    if (wasResumed) {
+        return;
+    }
+
+    const chainedOptions = {
+        loop: false,
+        clampWhenFinished: true,
+        ...resumeOptions
+    };
+    animationManager.playAnimation(chainConfig.animationName, chainedOptions);
+}
 
 /* Executa animação ou alterna se já estiver aberta */
 export function handleObjectClick(object, animationManager) {
@@ -150,6 +210,18 @@ export function handleObjectClick(object, animationManager) {
                 : Math.abs(baseTimeScale || 1),
             startAtEnd: isReversed
         };
+
+        const chainConfig = mapping.chainOnComplete;
+        const shouldChainForward = chainConfig && !isReversed;
+        const shouldPauseOnReverse = chainConfig?.pauseWhenReversed && isReversed;
+
+        if (shouldChainForward) {
+            playOptions.onComplete = () =>
+                triggerChainedAnimation(animationManager, chainConfig);
+        } else if (shouldPauseOnReverse) {
+            playOptions.onComplete = () =>
+                animationManager.pauseAnimation(chainConfig.animationName);
+        }
 
         // Executa com direção baseada no estado atual
         animationManager.playAnimation(animationName, playOptions);

@@ -263,14 +263,13 @@ function renderShippingOptions() {
 
     SHIPPING_OPTIONS.forEach(({ id, title, timing, price }, index) => {
         const label = document.createElement("label");
-        label.className = `flex cursor-pointer items-start gap-3 rounded-2xl border p-4 text-sm transition ${index === 0
-            ? "border-[#2b0f84] bg-[#2b0f84]/5"
-            : "border-slate-200 hover:border-slate-300"
-            }`;
+        label.dataset.shippingOption = id;
+        label.className = shippingOptionClass(index === 0);
 
         const input = document.createElement("input");
         input.type = "radio";
         input.name = "shipping";
+        input.value = id;
         input.className = "mt-1.5 size-5 accent-[#2b0f84]";
         if (index === 0) input.checked = true;
 
@@ -292,7 +291,22 @@ function renderShippingOptions() {
 
         inner.append(left, priceEl);
         label.append(input, inner);
+        input.addEventListener("change", () => setActiveShippingOption(id));
         container.appendChild(label);
+    });
+}
+
+function shippingOptionClass(isActive) {
+    const base = "flex cursor-pointer items-start gap-3 rounded-2xl border p-4 text-sm transition";
+    return `${base} ${isActive ? "border-[#2b0f84] bg-[#2b0f84]/5" : "border-slate-200 hover:border-slate-300"}`;
+}
+
+function setActiveShippingOption(optionId) {
+    document.querySelectorAll("[data-shipping-option]").forEach((label) => {
+        const isActive = label.dataset.shippingOption === optionId;
+        label.className = shippingOptionClass(isActive);
+        const input = label.querySelector("input[type='radio']");
+        if (input) input.checked = isActive;
     });
 }
 

@@ -97,7 +97,7 @@ function createProductCard(product) {
     const article = document.createElement("article");
     const toneClass = product.active ? "bg-white" : "bg-white/90";
     article.className =
-        `group flex flex-col overflow-hidden rounded-[24px] border border-slate-200 ${toneClass} ` +
+        `group flex h-full flex-col overflow-hidden rounded-[24px] border border-slate-200 ${toneClass} ` +
         "shadow-[0_25px_60px_-45px_rgba(15,23,42,0.7)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_35px_70px_-40px_rgba(15,23,42,0.6)]";
 
     if (product.image) {
@@ -105,7 +105,10 @@ function createProductCard(product) {
     }
 
     const body = document.createElement("div");
-    body.className = "flex flex-1 flex-col gap-3 px-5 pb-5 pt-4";
+    body.className = "flex flex-1 flex-col px-5 pb-5 pt-4";
+
+    const infoGroup = document.createElement("div");
+    infoGroup.className = "space-y-2";
 
     const tag = document.createElement("p");
     tag.className = `text-[11px] font-semibold uppercase tracking-[0.35em] ${product.tagClass}`;
@@ -119,8 +122,13 @@ function createProductCard(product) {
     description.className = "text-sm leading-relaxed text-slate-600";
     description.textContent = product.description;
 
+    infoGroup.append(tag, title, description);
+
+    const metaGroup = document.createElement("div");
+    metaGroup.className = "mt-auto space-y-4";
+
     const priceRow = document.createElement("div");
-    priceRow.className = "mt-1 flex items-baseline gap-2 text-slate-900";
+    priceRow.className = "flex items-baseline gap-2 text-slate-900";
 
     const currentPrice = document.createElement("span");
     currentPrice.className = "text-2xl font-semibold";
@@ -142,7 +150,7 @@ function createProductCard(product) {
     }
 
     const actions = document.createElement("div");
-    actions.className = "mt-4 flex flex-col gap-2";
+    actions.className = "flex flex-col gap-2 min-h-[78px]";
 
     if (product.active) {
         const link = document.createElement("a");
@@ -152,6 +160,15 @@ function createProductCard(product) {
         link.textContent = product.ctaLabel;
         link.appendChild(createArrowIcon());
         actions.appendChild(link);
+
+        if (product.note) {
+            const note = document.createElement("p");
+            note.className = "text-xs text-slate-500";
+            note.textContent = product.note;
+            actions.appendChild(note);
+        } else {
+            actions.appendChild(createNotePlaceholder());
+        }
     } else {
         const button = document.createElement("button");
         button.type = "button";
@@ -160,9 +177,12 @@ function createProductCard(product) {
             "inline-flex h-11 items-center justify-center rounded-2xl border border-dashed border-slate-300 px-5 text-sm font-semibold uppercase tracking-wide text-slate-400";
         button.textContent = product.ctaLabel;
         actions.appendChild(button);
+
+        actions.appendChild(createNotePlaceholder());
     }
 
-    body.append(tag, title, description, priceRow, actions);
+    metaGroup.append(priceRow, actions);
+    body.append(infoGroup, metaGroup);
     article.appendChild(body);
     return article;
 }
@@ -182,6 +202,14 @@ function createProductPreview(product) {
 
     figure.append(img, overlay);
     return figure;
+}
+
+function createNotePlaceholder() {
+    const placeholder = document.createElement("p");
+    placeholder.className = "text-xs text-transparent select-none";
+    placeholder.textContent = "—";
+    placeholder.setAttribute("aria-hidden", "true");
+    return placeholder;
 }
 
 function createArrowIcon() {
