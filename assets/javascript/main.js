@@ -2,7 +2,7 @@
 // Versão otimizada do teu script original, com comentários em Português (PT-PT).
 
 import { RecordPlayerViewer } from "./components/RecordPlayerViewer.js";
-import { materialPresets } from "./lib/textures.js";
+import { materialPresets, materialLibrary, customMaterialOptions } from "./lib/textures.js";
 import { ratingDistribution, reviews, highlights, badges, suggestedProducts } from "./lib/data.js";
 import { createIcon } from "./lib/icons.js";
 
@@ -31,6 +31,20 @@ const SHIPPING_OPTIONS = [
         price: "Grátis",
     },
 ];
+
+const CUSTOM_PART_LABELS = {
+    base: "Base principal",
+    feet: "Pes",
+    agulha: "Agulha",
+    vinylBase: "Base do vinil",
+};
+
+const customMaterialState = Object.keys(CUSTOM_PART_LABELS).reduce((acc, part) => {
+    acc[part] = "preset";
+    return acc;
+}, {});
+
+const customMaterialButtons = {};
 
 // fallback para thumbs
 const THUMBNAIL_FALLBACK = new URL("../images/Wood.png", import.meta.url).href;
@@ -311,6 +325,144 @@ function setActiveShippingOption(optionId) {
 }
 
 /* -------------------------
+   CUSTOM MATERIALS
+   ------------------------- */
+
+function renderCustomMaterialControls() {
+    const container = $id("custom-material-controls");
+    if (!container) return;
+    container.innerHTML = "";
+
+    Object.entries(CUSTOM_PART_LABELS).forEach(([partKey, label]) => {
+        const options = customMaterialOptions[partKey] || [];
+        if (!options.length) return;
+
+        const block = document.createElement("div");
+        block.className = "space-y-3 rounded-2xl border border-slate-100 bg-white/60 p-3";
+
+        const header = document.createElement("div");
+        header.className = "flex items-center justify-between";
+        const title = document.createElement("p");
+        title.className = "text-sm font-semibold text-slate-900";
+        title.textContent = label;
+        const hint = document.createElement("span");
+        hint.className = "text-xs text-slate-500";
+        hint.textContent = "Escolha o acabamento";
+        header.append(title, hint);
+
+        const list = document.createElement("div");
+        list.className = "flex flex-wrap gap-2";
+        customMaterialButtons[partKey] = [];
+
+        options.forEach((option) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.dataset.part = partKey;
+            btn.dataset.value = option.id;
+            btn.className = customOptionButtonClass(partKey, option.id);
+
+            applyCustomMaterialPreview(btn, option);
+
+            const sr = document.createElement("span");
+            sr.className = "sr-only";
+            sr.textContent = `${label}: ${option.label}`;
+            btn.appendChild(sr);
+
+            btn.addEventListener("click", () => {
+                if (customMaterialState[partKey] === option.id) return;
+                customMaterialState[partKey] = option.id;
+                applyCustomMaterialSelection(partKey, option.id);
+                updateCustomMaterialButtons(partKey);
+            });
+
+            customMaterialButtons[partKey].push(btn);
+            list.appendChild(btn);
+        });
+
+        block.append(header, list);
+        container.appendChild(block);
+        updateCustomMaterialButtons(partKey);
+    });
+
+    const resetButton = $id("custom-material-reset");
+    if (resetButton && !resetButton.dataset.bound) {
+        resetButton.dataset.bound = "true";
+        resetButton.addEventListener("click", resetCustomMaterials);
+    }
+}
+
+function customOptionButtonClass(partKey, optionId) {
+    const isActive = customMaterialState[partKey] === optionId;
+    const base = "group relative flex h-14 w-14 items-center justify-center rounded-full border-2 text-[10px] font-semibold uppercase transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2b0f84]";
+    const active = "border-[#2b0f84] ring-4 ring-[#2b0f84]/15";
+    const inactive = "border-slate-200 text-slate-600 hover:border-[#2b0f84]/60";
+    return `${base} ${isActive ? active : inactive}`;
+}
+
+function applyCustomMaterialPreview(button, option) {
+    button.style.backgroundImage = "";
+    button.style.backgroundSize = "";
+    button.style.backgroundPosition = "";
+    button.style.backgroundColor = "";
+    button.textContent = "";
+
+    if (option.kind === "material") {
+        const entry = materialLibrary[option.id];
+        if (entry?.preview?.type === "image" && entry.preview.src) {
+            button.style.backgroundImage = `url(${entry.preview.src})`;
+            button.style.backgroundSize = "cover";
+            button.style.backgroundPosition = "center";
+        } else if (entry?.preview?.value) {
+            button.style.backgroundColor = entry.preview.value;
+        } else {
+            button.style.backgroundColor = "#e2e8f0";
+        }
+    } else {
+        button.style.backgroundColor = "#f5f7fb";
+        const label = document.createElement("span");
+        label.className = "pointer-events-none text-[10px] font-semibold tracking-wide text-slate-600";
+        label.textContent = option.shortLabel?.slice(0, 3).toUpperCase() || "ORG";
+        label.setAttribute("aria-hidden", "true");
+        button.appendChild(label);
+    }
+}
+
+function updateCustomMaterialButtons(partKey) {
+    (customMaterialButtons[partKey] || []).forEach((btn) => {
+        btn.className = customOptionButtonClass(partKey, btn.dataset.value);
+        const isActive = customMaterialState[partKey] === btn.dataset.value;
+        btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+}
+
+function applyCustomMaterialSelection(partKey, optionId) {
+    if (!partKey || !viewerInstance) return;
+    const options = customMaterialOptions[partKey] || [];
+    const option = options.find((opt) => opt.id === optionId);
+    if (!option) return;
+
+    if (option.kind === "original") {
+        viewerInstance.setCustomMaterial(partKey, { mode: "original" });
+        return;
+    }
+
+    if (option.kind === "material") {
+        const entry = materialLibrary[option.id];
+        if (entry?.material) {
+            viewerInstance.setCustomMaterial(partKey, { mode: "material", material: entry.material });
+        }
+    }
+}
+
+function resetCustomMaterials() {
+    Object.keys(customMaterialState).forEach((partKey) => {
+        customMaterialState[partKey] = "preset";
+        updateCustomMaterialButtons(partKey);
+    });
+    viewerInstance?.clearAllCustomMaterials?.();
+}
+
+/* -------------------------
    REVIEWS (slider)
    ------------------------- */
 
@@ -519,6 +671,7 @@ function initApp() {
     // componentes visuais / dados
     initViewer();
     renderPresetButtons();
+    renderCustomMaterialControls();
     renderHighlights();
     renderBadges();
     renderPriceInfo();

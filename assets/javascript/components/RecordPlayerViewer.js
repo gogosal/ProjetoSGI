@@ -17,6 +17,7 @@ export class RecordPlayerViewer {
         this.currentPreset = initialPreset;
         this.modelParts = {};
         this.originalMaterials = {};
+        this.customOverrides = {};
         this.animationManager = null;
         this.raycastManager = null;
         this.isDisposed = false;
@@ -137,6 +138,7 @@ export class RecordPlayerViewer {
                 : preset.materials;
 
         this.applyMaterials({ base, feet, agulha, vinylBase }, sourceMaterials);
+        this.applyCustomOverrides();
     }
 
     applyMaterials(parts, materials) {
@@ -146,6 +148,47 @@ export class RecordPlayerViewer {
                 parts[key].material = materials[key];
             }
         });
+    }
+
+    setCustomMaterial(partKey, override) {
+        if (!partKey || !override) return;
+        this.customOverrides[partKey] = override;
+        this.applyCustomOverride(partKey);
+    }
+
+    clearCustomMaterial(partKey) {
+        if (!partKey) return;
+        delete this.customOverrides[partKey];
+        this.applyMaterialPreset(this.currentPreset);
+    }
+
+    clearAllCustomMaterials() {
+        this.customOverrides = {};
+        this.applyMaterialPreset(this.currentPreset);
+    }
+
+    applyCustomOverrides() {
+        Object.keys(this.customOverrides).forEach((partKey) => {
+            this.applyCustomOverride(partKey);
+        });
+    }
+
+    applyCustomOverride(partKey) {
+        const override = this.customOverrides[partKey];
+        const part = this.modelParts[partKey];
+        if (!override || !part) return;
+
+        if (override.mode === "original") {
+            const original = this.originalMaterials[partKey];
+            if (original) {
+                part.material = original;
+            }
+            return;
+        }
+
+        if (override.mode === "material" && override.material) {
+            part.material = override.material;
+        }
     }
 
     dispose() {

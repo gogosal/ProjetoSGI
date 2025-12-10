@@ -82,6 +82,79 @@ const plastic = new THREE.MeshStandardMaterial({
     side: THREE.DoubleSide,
 });
 
+const materialLibrary = {
+    marble: {
+        id: "marble",
+        label: "Marmore Carrara",
+        shortLabel: "Marmore",
+        material: marble,
+        preview: { type: "image", src: marblePresetThumbnail },
+    },
+    gold: {
+        id: "gold",
+        label: "Ouro escovado",
+        shortLabel: "Ouro",
+        material: gold,
+        preview: { type: "color", value: "#d4b47a" },
+    },
+    chrome: {
+        id: "chrome",
+        label: "Cromado",
+        shortLabel: "Chrome",
+        material: chrome,
+        preview: { type: "color", value: "#dfe4ed" },
+    },
+    copper: {
+        id: "copper",
+        label: "Cobre vintage",
+        shortLabel: "Cobre",
+        material: copper,
+        preview: { type: "color", value: "#b56a39" },
+    },
+    wood: {
+        id: "wood",
+        label: "Madeira natural",
+        shortLabel: "Madeira",
+        material: wood,
+        preview: { type: "image", src: defaultPresetThumbnail },
+    },
+    plastic: {
+        id: "plastic",
+        label: "Preto acetinado",
+        shortLabel: "Preto",
+        material: plastic,
+        preview: { type: "color", value: "#2f2f2f" },
+    },
+};
+
+const customMaterialOptions = {
+    base: [
+        { id: "original", label: "Original do modelo", shortLabel: "Original", kind: "original" },
+        { id: "marble", label: materialLibrary.marble.label, shortLabel: materialLibrary.marble.shortLabel, kind: "material" },
+        { id: "wood", label: materialLibrary.wood.label, shortLabel: materialLibrary.wood.shortLabel, kind: "material" },
+        { id: "plastic", label: materialLibrary.plastic.label, shortLabel: materialLibrary.plastic.shortLabel, kind: "material" },
+    ],
+    feet: [
+        { id: "original", label: "Original do modelo", shortLabel: "Original", kind: "original" },
+        { id: "gold", label: materialLibrary.gold.label, shortLabel: materialLibrary.gold.shortLabel, kind: "material" },
+        { id: "copper", label: materialLibrary.copper.label, shortLabel: materialLibrary.copper.shortLabel, kind: "material" },
+        { id: "chrome", label: materialLibrary.chrome.label, shortLabel: materialLibrary.chrome.shortLabel, kind: "material" },
+    ],
+    agulha: [
+        { id: "original", label: "Original do modelo", shortLabel: "Original", kind: "original" },
+        { id: "gold", label: materialLibrary.gold.label, shortLabel: materialLibrary.gold.shortLabel, kind: "material" },
+        { id: "chrome", label: materialLibrary.chrome.label, shortLabel: materialLibrary.chrome.shortLabel, kind: "material" },
+        { id: "copper", label: materialLibrary.copper.label, shortLabel: materialLibrary.copper.shortLabel, kind: "material" },
+    ],
+    vinylBase: [
+        { id: "original", label: "Original do modelo", shortLabel: "Original", kind: "original" },
+        { id: "marble", label: materialLibrary.marble.label, shortLabel: materialLibrary.marble.shortLabel, kind: "material" },
+        { id: "wood", label: materialLibrary.wood.label, shortLabel: materialLibrary.wood.shortLabel, kind: "material" },
+        { id: "gold", label: materialLibrary.gold.label, shortLabel: materialLibrary.gold.shortLabel, kind: "material" },
+        { id: "plastic", label: materialLibrary.plastic.label, shortLabel: materialLibrary.plastic.shortLabel, kind: "material" },
+    ],
+};
+
 // Sistema de presets de materiais
 export const materialPresets = {
     default: {
@@ -125,4 +198,4 @@ export const materialPresets = {
     }
 };
 
-export { marble, gold, chrome, copper, wood, plastic };
+export { marble, gold, chrome, copper, wood, plastic, materialLibrary, customMaterialOptions };
