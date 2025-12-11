@@ -84,4 +84,20 @@ export const suggestedProducts = [
         badge: "Mais vendido",
         image: "../assets/images/MesaDeCabeceira2.jpg",
     },
+    {
+        id: "table3",
+        title: "Mesa de cabeceira em metal aço, Alessio",
+        price: "95,20 €",
+        description: "Estilo industrial e design contemporâneo. A Alessio tem um tampo duplo em semicírculo e pode ser usada dos dois lados. Um mobiliário funcional e criativo.",
+        badge: "Mais vendido",
+        image: "../assets/images/Mesa3.jpg",
+    },
+    {
+        id: "table4",
+        title: "Mesa de cabeceira de parede, TRIGALA",
+        price: "73,57 €",
+        description: "A mesa de cabeceira de parede, Trigala. A aliança da madeira e do metal para esta mesa de cabeceira com um design simples.",
+        badge: "Em stock",
+        image: "../assets/images/Mesa4.jpg",
+    },
 ];

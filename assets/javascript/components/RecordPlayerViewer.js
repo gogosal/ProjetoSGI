@@ -124,6 +124,7 @@ export class RecordPlayerViewer {
 
     setPreset(presetName) {
         this.currentPreset = presetName;
+        this.customOverrides = {};
         this.applyMaterialPreset(presetName);
     }
 

@@ -1,340 +1,266 @@
-// ficheiro optimizado.js
-// Versão otimizada do teu script original, com comentários em Português (PT-PT).
-
 import { RecordPlayerViewer } from "./components/RecordPlayerViewer.js";
 import { materialPresets, materialLibrary, customMaterialOptions } from "./lib/textures.js";
 import { ratingDistribution, reviews, highlights, badges, suggestedProducts } from "./lib/data.js";
 import { createIcon } from "./lib/icons.js";
 
 /* -------------------------
-   Constantes e configuração
+   Configuração
    ------------------------- */
 const PRESET_ORDER = ["default", "luxo", "moderno", "vintage"];
-
-const PRICE = {
-    current: "349,00 €",
-    previous: "399,00 €",
-    discount: "-13%",
-};
-
+const PRICE = { current: "349,00 €", previous: "399,00 €", discount: "-13%" };
 const SHIPPING_OPTIONS = [
-    {
-        id: "home",
-        title: "Entrega e calibração ao domicílio",
-        timing: "Agende entre 16 e 21 de Novembro",
-        price: "19,90 €",
-    },
-    {
-        id: "store",
-        title: "Levantamento em loja com sessão demo",
-        timing: "Pronto em 1 a 2 dias úteis",
-        price: "Grátis",
-    },
+    { id: "home", title: "Entrega e calibração ao domicílio", timing: "Agende entre 16 e 21 de Novembro", price: "19,90 €" },
+    { id: "store", title: "Levantamento em loja com sessão demo", timing: "Pronto em 1 a 2 dias úteis", price: "Grátis" }
 ];
-
-const CUSTOM_PART_LABELS = {
-    base: "Base principal",
-    feet: "Pes",
-    agulha: "Agulha",
-    vinylBase: "Base do vinil",
-};
-
-const customMaterialState = Object.keys(CUSTOM_PART_LABELS).reduce((acc, part) => {
-    acc[part] = "preset";
-    return acc;
-}, {});
-
+const CUSTOM_PART_LABELS = { base: "Base principal", feet: "Pes", agulha: "Agulha", vinylBase: "Base do vinil" };
+const customMaterialState = Object.fromEntries(Object.keys(CUSTOM_PART_LABELS).map(k => [k, "preset"]));
 const customMaterialButtons = {};
 
-// fallback para thumbs
-const THUMBNAIL_FALLBACK = new URL("../images/Wood.png", import.meta.url).href;
-
-/* -------------------------
-   Estado interno
-   ------------------------- */
 let viewerInstance = null;
 let sliderInterval = null;
 let slidesPerView = 1;
 let currentSlide = 0;
+let wishlistActive = false;
+let cartCount = 0;
 
 /* -------------------------
-   UTILITÁRIOS DOM / UI
+   Helpers
    ------------------------- */
+const $ = id => document.getElementById(id);
+const THUMB_FALLBACK = new URL("../images/Wood.png", import.meta.url).href;
 
-// atalho seguro para obter elemento (retorna null se não existir)
-function $id(id) {
-    return document.getElementById(id);
+function presetClass(active) {
+    return `group relative flex h-16 w-16 items-center justify-center rounded-full border transition sm:h-20 sm:w-20 ${active
+        ? "border-[#2b0f84] bg-[#2b0f84]/10 shadow-sm"
+        : "border-slate-200 bg-white hover:border-[#2b0f84]/60 hover:bg-[#2b0f84]/5"
+        }`;
 }
 
-// define texto de forma segura (ignora se o elemento for null)
-function setTextSafe(el, text) {
-    if (el) el.textContent = text;
+function shippingClass(active) {
+    return `flex cursor-pointer items-start gap-3 rounded-2xl border p-4 text-sm transition ${active
+        ? "border-[#2b0f84] bg-[#2b0f84]/5"
+        : "border-slate-200 hover:border-slate-300"
+        }`;
 }
 
-// cria uma classe de botão de preset, evita repetição de strings Tailwind
-function presetClass(isActive = false) {
-    const base = "group relative flex h-16 w-16 items-center justify-center rounded-full border transition sm:h-20 sm:w-20";
-    const active = "border-[#2b0f84] bg-[#2b0f84]/10 shadow-sm";
-    const inactive = "border-slate-200 bg-white hover:border-[#2b0f84]/60 hover:bg-[#2b0f84]/5";
-    return `${base} ${isActive ? active : inactive}`;
-}
-
-// limpa e insere HTML com segurança (substitui innerHTML)
-function clearAndAppend(parent, children = []) {
-    if (!parent) return;
-    parent.innerHTML = "";
-    children.forEach((c) => parent.appendChild(c));
-}
-
-// cria um fragmento com N estrelas (útil para vários locais)
-function makeStarsFragment(rating = 0, max = 5) {
-    const frag = document.createDocumentFragment();
-    for (let i = 1; i <= max; i += 1) {
+function makeStars(rating = 0, max = 5) {
+    const f = document.createDocumentFragment();
+    for (let i = 1; i <= max; i++) {
         const filled = i <= Math.round(rating);
-        const star = createIcon("star", {
-            className: "size-4",
-            fill: filled ? "currentColor" : "none",
-            stroke: "currentColor",
-        });
-        frag.appendChild(star);
+        const iconName = filled ? "star" : "star-outline";
+        f.appendChild(createIcon(iconName, {
+            className: "text-[1rem]"
+        }));
     }
-    return frag;
+    return f;
 }
 
 /* -------------------------
-   Inicialização do viewer 3D
+   Viewer 3D
    ------------------------- */
 function initViewer() {
-    const canvas = $id("record-player-canvas");
-    const container = $id("viewer-container");
-    if (!canvas || !container) return;
-    viewerInstance = new RecordPlayerViewer({ canvas, container, initialPreset: "default" });
+    const canvas = $("record-player-canvas");
+    const container = $("viewer-container");
+    if (canvas && container)
+        viewerInstance = new RecordPlayerViewer({ canvas, container, initialPreset: "default" });
 }
 
 /* -------------------------
-   PRESETS (botões)
+   Presets
    ------------------------- */
-
 function renderPresetButtons() {
-    const grid = $id("preset-grid");
-    if (!grid) return;
-
-    // limpar
+    const grid = $("preset-grid");
     grid.innerHTML = "";
 
-    PRESET_ORDER.forEach((key, index) => {
+    PRESET_ORDER.forEach((key, i) => {
         const preset = materialPresets[key];
         if (!preset) return;
 
         const btn = document.createElement("button");
         btn.type = "button";
         btn.dataset.preset = key;
-        btn.className = presetClass(index === 0);
+        btn.className = presetClass(i === 0);
 
-        const thumbnail = preset.thumbnail || THUMBNAIL_FALLBACK;
         const img = document.createElement("img");
-        img.src = thumbnail;
+        img.src = preset.thumbnail || THUMB_FALLBACK;
         img.alt = preset.name || key;
         img.className = "h-12 w-12 rounded-full object-cover shadow-sm sm:h-16 sm:w-16";
         img.loading = "lazy";
 
-        const sr = document.createElement("span");
-        sr.className = "sr-only";
-        sr.textContent = preset.name || key;
-
-        btn.append(img, sr);
+        btn.append(img);
         btn.addEventListener("click", () => setActivePreset(key));
         grid.appendChild(btn);
     });
 
-    // garante que o primeiro preset (se existir) fica activo
     if (PRESET_ORDER.length) setActivePreset(PRESET_ORDER[0]);
 }
 
-// define preset activo: atualiza classes dos botões e informa o viewer 3D
 function setActivePreset(key) {
-    document.querySelectorAll("[data-preset]").forEach((btn) => {
-        const isActive = btn.dataset.preset === key;
-        btn.className = presetClass(isActive);
+    document.querySelectorAll("[data-preset]").forEach(btn => {
+        btn.className = presetClass(btn.dataset.preset === key);
     });
+    resetCustomMaterialSelections();
     viewerInstance?.setPreset(key);
 }
 
 /* -------------------------
-   HIGHLIGHTS e BADGES
+   Highlights & Badges
    ------------------------- */
-
 function renderHighlights() {
-    const list = $id("highlights-list");
-    if (!list) return;
+    const list = $("highlights-list");
+    list.innerHTML = "";
 
     const frag = document.createDocumentFragment();
-    highlights.forEach((item) => {
+    highlights.forEach(t => {
         const li = document.createElement("li");
         li.className = "flex items-start gap-2";
-        // separar elementos em vez de innerHTML para maior segurança
+
         const dot = document.createElement("span");
         dot.className = "mt-1 size-1.5 rounded-full bg-[#2b0f84]";
+
         const txt = document.createElement("span");
-        txt.textContent = item;
+        txt.textContent = t;
         li.append(dot, txt);
         frag.appendChild(li);
     });
-    clearAndAppend(list, [frag]); // se list aceitar fragmento, append funciona
+
+    list.appendChild(frag);
 }
 
 function renderBadges() {
-    const container = $id("badges-list");
-    if (!container) return;
-
+    const c = $("badges-list");
+    c.innerHTML = "";
     const frag = document.createDocumentFragment();
+
     badges.forEach(({ icon, label }) => {
         const badge = document.createElement("span");
         badge.className = "flex items-center gap-2";
-        const svg = createIcon(icon, { className: "size-4 text-[#2b0f84]" });
-        badge.append(svg, document.createTextNode(label));
+        badge.append(createIcon(icon, { className: "text-[1rem] text-[#2b0f84]" }), label);
         frag.appendChild(badge);
     });
-    container.innerHTML = "";
-    container.appendChild(frag);
+
+    c.appendChild(frag);
 }
 
 /* -------------------------
-   PREÇO
+   Preço
    ------------------------- */
-
 function renderPriceInfo() {
-    setTextSafe($id("price-current"), PRICE.current);
-    setTextSafe($id("price-previous"), PRICE.previous);
-    setTextSafe($id("price-discount"), PRICE.discount);
+    $("price-current").textContent = PRICE.current;
+    $("price-previous").textContent = PRICE.previous;
+    $("price-discount").textContent = PRICE.discount;
 }
 
 /* -------------------------
-   RATING (resumo e breakdown)
+   Rating
    ------------------------- */
-
-// renderiza o resumo das avaliações (média, contagem, percentagem recomendação, estrelas grandes)
 function renderRatingSummary() {
-    const reviewCount = reviews.length;
-    const average = reviewCount === 0 ? 0 : reviews.reduce((s, r) => s + r.rating, 0) / reviewCount;
+    const count = reviews.length;
+    const avg = count ? reviews.reduce((s, r) => s + r.rating, 0) / count : 0;
+    const recommendation = ratingDistribution.filter(r => r.stars >= 4).reduce((a, b) => a + b.percentage, 0);
 
-    const recommendationPercent = ratingDistribution
-        .filter(({ stars }) => stars >= 4)
-        .reduce((total, { percentage }) => total + percentage, 0);
+    $("rating-text1").textContent = `${avg.toFixed(1)} ·`;
+    $("rating-text2").textContent = `${count} avaliações`;
+    $("average-rating-large").textContent = avg.toFixed(1);
+    $("rating-count-secondary").textContent = `${count} avaliações totais`;
+    $("rating-recommendation").textContent = `${recommendation}% recomendam este artigo`;
 
-    setTextSafe($id("rating-text1"), `${average.toFixed(1)} ·`);
-    setTextSafe($id("rating-text2"), ` ${reviewCount} avaliações`);
-    setTextSafe($id("average-rating-large"), average.toFixed(1));
-    setTextSafe($id("rating-count-secondary"), `${reviewCount} avaliações totais`);
-    setTextSafe($id("rating-recommendation"), `${recommendationPercent}% recomendam este artigo`);
-
-    // preenche os contêineres de estrelas (se existirem)
-    [$id("rating-stars"), $id("rating-stars-secondary")].forEach((container) => {
-        if (!container) return;
-        container.innerHTML = "";
-        container.appendChild(makeStarsFragment(average));
+    [$("rating-stars"), $("rating-stars-secondary")].forEach(c => {
+        if (c) {
+            c.innerHTML = "";
+            c.appendChild(makeStars(avg));
+        }
     });
 }
 
-// renderiza o breakdown (barras por cada nível de estrelas)
 function renderRatingBreakdown() {
-    const container = $id("rating-breakdown");
-    if (!container) return;
+    const container = $("rating-breakdown");
     container.innerHTML = "";
 
     ratingDistribution.forEach(({ stars, percentage }) => {
         const row = document.createElement("div");
         row.className = "flex items-center gap-3";
 
-        const starsLabel = document.createElement("span");
-        starsLabel.className = "w-10";
-        starsLabel.textContent = `${stars}★`;
+        const label = document.createElement("span");
+        label.className = "w-10";
+        label.textContent = `${stars}★`;
 
-        const barWrapper = document.createElement("div");
-        barWrapper.className = "h-2 flex-1 rounded-full bg-slate-100";
+        const barWrap = document.createElement("div");
+        barWrap.className = "h-2 flex-1 rounded-full bg-slate-100";
         const bar = document.createElement("div");
         bar.className = "h-full rounded-full bg-[#2b0f84]";
         bar.style.width = `${percentage}%`;
-        barWrapper.appendChild(bar);
+        barWrap.appendChild(bar);
 
-        const percentText = document.createElement("span");
-        percentText.className = "w-12 text-right";
-        percentText.textContent = `${percentage}%`;
+        const perc = document.createElement("span");
+        perc.className = "w-12 text-right";
+        perc.textContent = `${percentage}%`;
 
-        row.append(starsLabel, barWrapper, percentText);
+        row.append(label, barWrap, perc);
         container.appendChild(row);
     });
 }
 
 /* -------------------------
-   SHIPPING OPTIONS
+   Envio
    ------------------------- */
-
 function renderShippingOptions() {
-    const container = $id("shipping-options");
-    if (!container) return;
-    container.innerHTML = "";
+    const c = $("shipping-options");
+    c.innerHTML = "";
 
-    SHIPPING_OPTIONS.forEach(({ id, title, timing, price }, index) => {
+    SHIPPING_OPTIONS.forEach((opt, i) => {
         const label = document.createElement("label");
-        label.dataset.shippingOption = id;
-        label.className = shippingOptionClass(index === 0);
+        label.dataset.shippingOption = opt.id;
+        label.className = shippingClass(i === 0);
 
         const input = document.createElement("input");
         input.type = "radio";
         input.name = "shipping";
-        input.value = id;
-        input.className = "mt-1.5 size-5 accent-[#2b0f84]";
-        if (index === 0) input.checked = true;
+        input.value = opt.id;
+        if (i === 0) input.checked = true;
 
-        const inner = document.createElement("div");
-        inner.className = "flex w-full items-start justify-between gap-4";
+        const t = document.createElement("div");
+        t.className = "flex w-full items-start justify-between gap-4";
 
         const left = document.createElement("div");
-        const titleEl = document.createElement("div");
-        titleEl.className = "font-medium text-slate-900";
-        titleEl.textContent = title;
-        const timingEl = document.createElement("div");
-        timingEl.className = "text-slate-600";
-        timingEl.textContent = timing;
-        left.append(titleEl, timingEl);
+        const title = document.createElement("div");
+        title.className = "font-medium text-slate-900";
+        title.textContent = opt.title;
+        const timing = document.createElement("div");
+        timing.className = "text-slate-600";
+        timing.textContent = opt.timing;
+        left.append(title, timing);
 
-        const priceEl = document.createElement("div");
-        priceEl.className = "font-semibold text-slate-900";
-        priceEl.textContent = price;
+        const price = document.createElement("div");
+        price.className = "font-semibold text-slate-900";
+        price.textContent = opt.price;
 
-        inner.append(left, priceEl);
-        label.append(input, inner);
-        input.addEventListener("change", () => setActiveShippingOption(id));
-        container.appendChild(label);
+        t.append(left, price);
+        label.append(input, t);
+        input.addEventListener("change", () => setActiveShippingOption(opt.id));
+
+        c.appendChild(label);
     });
 }
 
-function shippingOptionClass(isActive) {
-    const base = "flex cursor-pointer items-start gap-3 rounded-2xl border p-4 text-sm transition";
-    return `${base} ${isActive ? "border-[#2b0f84] bg-[#2b0f84]/5" : "border-slate-200 hover:border-slate-300"}`;
-}
-
-function setActiveShippingOption(optionId) {
-    document.querySelectorAll("[data-shipping-option]").forEach((label) => {
-        const isActive = label.dataset.shippingOption === optionId;
-        label.className = shippingOptionClass(isActive);
-        const input = label.querySelector("input[type='radio']");
-        if (input) input.checked = isActive;
+function setActiveShippingOption(id) {
+    document.querySelectorAll("[data-shipping-option]").forEach(l => {
+        const active = l.dataset.shippingOption === id;
+        l.className = shippingClass(active);
+        const input = l.querySelector("input");
+        if (input) input.checked = active;
     });
 }
 
 /* -------------------------
-   CUSTOM MATERIALS
+   Custom Materials
    ------------------------- */
-
 function renderCustomMaterialControls() {
-    const container = $id("custom-material-controls");
-    if (!container) return;
-    container.innerHTML = "";
+    const c = $("custom-material-controls");
+    c.innerHTML = "";
 
-    Object.entries(CUSTOM_PART_LABELS).forEach(([partKey, label]) => {
-        const options = customMaterialOptions[partKey] || [];
+    Object.entries(CUSTOM_PART_LABELS).forEach(([part, label]) => {
+        const options = customMaterialOptions[part] || [];
         if (!options.length) return;
 
         const block = document.createElement("div");
@@ -342,333 +268,380 @@ function renderCustomMaterialControls() {
 
         const header = document.createElement("div");
         header.className = "flex items-center justify-between";
-        const title = document.createElement("p");
-        title.className = "text-sm font-semibold text-slate-900";
-        title.textContent = label;
-        const hint = document.createElement("span");
-        hint.className = "text-xs text-slate-500";
-        hint.textContent = "Escolha o acabamento";
-        header.append(title, hint);
+        header.innerHTML = `<p class='text-sm font-semibold text-slate-900'>${label}</p><span class='text-xs text-slate-500'>Escolha o acabamento</span>`;
 
         const list = document.createElement("div");
         list.className = "flex flex-wrap gap-2";
-        customMaterialButtons[partKey] = [];
+        customMaterialButtons[part] = [];
 
-        options.forEach((option) => {
+        options.forEach(opt => {
             const btn = document.createElement("button");
             btn.type = "button";
-            btn.dataset.part = partKey;
-            btn.dataset.value = option.id;
-            btn.className = customOptionButtonClass(partKey, option.id);
-
-            applyCustomMaterialPreview(btn, option);
-
-            const sr = document.createElement("span");
-            sr.className = "sr-only";
-            sr.textContent = `${label}: ${option.label}`;
-            btn.appendChild(sr);
+            btn.dataset.part = part;
+            btn.dataset.value = opt.id;
+            btn.className = customOptionClass(part, opt.id);
+            applyMaterialPreview(btn, opt);
 
             btn.addEventListener("click", () => {
-                if (customMaterialState[partKey] === option.id) return;
-                customMaterialState[partKey] = option.id;
-                applyCustomMaterialSelection(partKey, option.id);
-                updateCustomMaterialButtons(partKey);
+                if (customMaterialState[part] !== opt.id) {
+                    customMaterialState[part] = opt.id;
+                    applyMaterialSelection(part, opt.id);
+                    updateMaterialButtons(part);
+                }
             });
 
-            customMaterialButtons[partKey].push(btn);
+            customMaterialButtons[part].push(btn);
             list.appendChild(btn);
         });
 
         block.append(header, list);
-        container.appendChild(block);
-        updateCustomMaterialButtons(partKey);
+        c.appendChild(block);
+
+        updateMaterialButtons(part);
     });
 
-    const resetButton = $id("custom-material-reset");
-    if (resetButton && !resetButton.dataset.bound) {
-        resetButton.dataset.bound = "true";
-        resetButton.addEventListener("click", resetCustomMaterials);
+    const reset = $("custom-material-reset");
+    if (reset && !reset.dataset.bound) {
+        reset.dataset.bound = "true";
+        reset.addEventListener("click", resetMaterials);
     }
 }
 
-function customOptionButtonClass(partKey, optionId) {
-    const isActive = customMaterialState[partKey] === optionId;
-    const base = "group relative flex h-14 w-14 items-center justify-center rounded-full border-2 text-[10px] font-semibold uppercase transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2b0f84]";
-    const active = "border-[#2b0f84] ring-4 ring-[#2b0f84]/15";
-    const inactive = "border-slate-200 text-slate-600 hover:border-[#2b0f84]/60";
-    return `${base} ${isActive ? active : inactive}`;
+function customOptionClass(part, id) {
+    const active = customMaterialState[part] === id;
+    return `group relative flex h-14 w-14 items-center justify-center rounded-full border-2 text-[10px] font-semibold uppercase transition ${active ? "border-[#2b0f84] ring-4 ring-[#2b0f84]/15" : "border-slate-200 text-slate-600 hover:border-[#2b0f84]/60"
+        }`;
 }
 
-function applyCustomMaterialPreview(button, option) {
-    button.style.backgroundImage = "";
-    button.style.backgroundSize = "";
-    button.style.backgroundPosition = "";
-    button.style.backgroundColor = "";
-    button.textContent = "";
+function applyMaterialPreview(btn, opt) {
+    Object.assign(btn.style, {
+        backgroundImage: "",
+        backgroundSize: "",
+        backgroundPosition: "",
+        backgroundColor: ""
+    });
+    btn.textContent = "";
 
-    if (option.kind === "material") {
-        const entry = materialLibrary[option.id];
-        if (entry?.preview?.type === "image" && entry.preview.src) {
-            button.style.backgroundImage = `url(${entry.preview.src})`;
-            button.style.backgroundSize = "cover";
-            button.style.backgroundPosition = "center";
+    if (opt.kind === "material") {
+        const entry = materialLibrary[opt.id];
+        if (entry?.preview?.type === "image") {
+            btn.style.backgroundImage = `url(${entry.preview.src})`;
+            btn.style.backgroundSize = "cover";
+            btn.style.backgroundPosition = "center";
         } else if (entry?.preview?.value) {
-            button.style.backgroundColor = entry.preview.value;
-        } else {
-            button.style.backgroundColor = "#e2e8f0";
+            btn.style.backgroundColor = entry.preview.value;
         }
     } else {
-        button.style.backgroundColor = "#f5f7fb";
-        const label = document.createElement("span");
-        label.className = "pointer-events-none text-[10px] font-semibold tracking-wide text-slate-600";
-        label.textContent = option.shortLabel?.slice(0, 3).toUpperCase() || "ORG";
-        label.setAttribute("aria-hidden", "true");
-        button.appendChild(label);
+        btn.style.backgroundColor = "#f5f7fb";
+        const l = document.createElement("span");
+        l.textContent = opt.shortLabel?.slice(0, 3).toUpperCase() || "ORG";
+        l.className = "pointer-events-none text-[10px] font-semibold tracking-wide text-slate-600";
+        btn.appendChild(l);
     }
 }
 
-function updateCustomMaterialButtons(partKey) {
-    (customMaterialButtons[partKey] || []).forEach((btn) => {
-        btn.className = customOptionButtonClass(partKey, btn.dataset.value);
-        const isActive = customMaterialState[partKey] === btn.dataset.value;
-        btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+function updateMaterialButtons(part) {
+    (customMaterialButtons[part] || []).forEach(btn => {
+        btn.className = customOptionClass(part, btn.dataset.value);
+        btn.setAttribute("aria-pressed", customMaterialState[part] === btn.dataset.value);
     });
 }
 
-function applyCustomMaterialSelection(partKey, optionId) {
-    if (!partKey || !viewerInstance) return;
-    const options = customMaterialOptions[partKey] || [];
-    const option = options.find((opt) => opt.id === optionId);
-    if (!option) return;
+function resetCustomMaterialSelections() {
+    Object.keys(customMaterialState).forEach(part => {
+        customMaterialState[part] = "preset";
+        updateMaterialButtons(part);
+    });
+}
 
-    if (option.kind === "original") {
-        viewerInstance.setCustomMaterial(partKey, { mode: "original" });
-        return;
-    }
+function applyMaterialSelection(part, id) {
+    const opt = (customMaterialOptions[part] || []).find(o => o.id === id);
+    if (!opt || !viewerInstance) return;
 
-    if (option.kind === "material") {
-        const entry = materialLibrary[option.id];
-        if (entry?.material) {
-            viewerInstance.setCustomMaterial(partKey, { mode: "material", material: entry.material });
-        }
+    if (opt.kind === "original") return viewerInstance.setCustomMaterial(part, { mode: "original" });
+
+    if (opt.kind === "material") {
+        const entry = materialLibrary[id];
+        if (entry?.material) viewerInstance.setCustomMaterial(part, { mode: "material", material: entry.material });
     }
 }
 
-function resetCustomMaterials() {
-    Object.keys(customMaterialState).forEach((partKey) => {
-        customMaterialState[partKey] = "preset";
-        updateCustomMaterialButtons(partKey);
+function resetMaterials() {
+    Object.keys(customMaterialState).forEach(part => {
+        customMaterialState[part] = "preset";
+        updateMaterialButtons(part);
     });
     viewerInstance?.clearAllCustomMaterials?.();
 }
 
 /* -------------------------
-   REVIEWS (slider)
+   Reviews
    ------------------------- */
-
-// cria um cartão de review (HTML) e retorna um elemento slide
-function createReviewCard(review) {
+function createReviewCard(r) {
     const slide = document.createElement("div");
     slide.className = "review-slide w-full shrink-0 px-2 lg:w-1/2";
 
     const card = document.createElement("article");
     card.className = "flex h-full flex-col gap-4 rounded-3xl border border-slate-100 bg-white/90 p-6 shadow-[0_20px_50px_-30px_rgba(15,23,42,0.6)]";
 
-    // header
     const header = document.createElement("div");
     header.className = "flex flex-wrap items-center justify-between gap-3";
 
-    const authorBlock = document.createElement("div");
-    authorBlock.className = "space-y-1";
-    const authorName = document.createElement("p");
-    authorName.className = "text-base font-semibold text-slate-900";
-    authorName.textContent = review.author || "Anónimo";
-    const verified = document.createElement("p");
-    verified.className = "text-xs font-semibold tracking-[0.3em] text-slate-400";
-    verified.textContent = "COMPRA VERIFICADA";
-    authorBlock.append(authorName, verified);
+    const author = document.createElement("div");
+    author.className = "space-y-1";
+    author.innerHTML = `<p class='text-base font-semibold text-slate-900'>${r.author || "Anónimo"}</p><p class='text-xs font-semibold tracking-[0.3em] text-slate-400'>COMPRA VERIFICADA</p>`;
 
-    const dateEl = document.createElement("p");
-    dateEl.className = "text-sm text-slate-500";
-    dateEl.textContent = review.date || "";
+    const date = document.createElement("p");
+    date.className = "text-sm text-slate-500";
+    date.textContent = r.date;
 
-    header.append(authorBlock, dateEl);
+    header.append(author, date);
 
-    // rating row (estrelas + badge)
-    const ratingRow = document.createElement("div");
-    ratingRow.className = "flex items-center gap-2 text-amber-500";
-    ratingRow.appendChild(makeStarsFragment(review.rating));
-    const ratingBadge = document.createElement("span");
-    ratingBadge.className = "ml-auto rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800";
-    ratingBadge.textContent = `${review.rating}.0`;
-    ratingRow.appendChild(ratingBadge);
+    const rating = document.createElement("div");
+    rating.className = "flex items-center gap-2 text-amber-500";
+    rating.append(makeStars(r.rating));
+    const badge = document.createElement("span");
+    badge.className = "ml-auto rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800";
+    badge.textContent = `${r.rating}.0`;
+    rating.appendChild(badge);
 
-    // título e conteúdo
     const title = document.createElement("h3");
     title.className = "text-xl font-semibold text-slate-900";
-    title.textContent = review.title;
+    title.textContent = r.title;
 
     const content = document.createElement("p");
     content.className = "text-sm leading-relaxed text-slate-600";
-    content.textContent = review.content;
+    content.textContent = r.content;
 
-    card.append(header, ratingRow, title, content);
+    card.append(header, rating, title, content);
     slide.appendChild(card);
     return slide;
 }
 
-// renderiza todos os reviews no track do slider
 function renderReviews() {
-    const track = $id("reviews-slider-track");
-    if (!track) return;
+    const track = $("reviews-slider-track");
     track.innerHTML = "";
     const frag = document.createDocumentFragment();
-    reviews.forEach((r) => frag.appendChild(createReviewCard(r)));
+    reviews.forEach(r => frag.appendChild(createReviewCard(r)));
     track.appendChild(frag);
 }
 
 /* -------------------------
-   SUGGESTED PRODUCTS
+   Sugestões
    ------------------------- */
-
 function renderSuggestedProducts() {
-    const container = $id("suggested-products");
-    if (!container) return;
-    container.innerHTML = "";
+    const c = $("suggested-products");
+    c.innerHTML = "";
 
     const frag = document.createDocumentFragment();
-    suggestedProducts.forEach((product) => {
+
+    suggestedProducts.forEach(p => {
         const card = document.createElement("article");
         card.className = "flex items-center gap-4 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md";
 
-        const figure = document.createElement("div");
-        figure.className = "overflow-hidden rounded-xl bg-slate-100";
+        const imgWrap = document.createElement("div");
+        imgWrap.className = "overflow-hidden rounded-xl bg-slate-100";
         const img = document.createElement("img");
-        img.src = product.image;
-        img.alt = product.title;
+        img.src = p.image;
+        img.alt = p.title;
         img.className = "h-24 w-24 object-cover";
         img.loading = "lazy";
-        figure.appendChild(img);
+        imgWrap.appendChild(img);
 
         const content = document.createElement("div");
         content.className = "flex-1 space-y-2";
 
         const badge = document.createElement("span");
         badge.className = "inline-flex items-center gap-1 rounded-full bg-[#0fa5b8]/10 px-3 py-1 text-xs font-semibold text-[#0f5a7a]";
-        badge.textContent = product.badge;
+        badge.textContent = p.badge;
 
         const title = document.createElement("h3");
         title.className = "text-base font-semibold text-slate-900";
-        title.textContent = product.title;
+        title.textContent = p.title;
 
-        const description = document.createElement("p");
-        description.className = "text-sm text-slate-600";
-        description.textContent = product.description;
+        const desc = document.createElement("p");
+        desc.className = "text-sm text-slate-600";
+        desc.textContent = p.description;
 
         const footer = document.createElement("div");
         footer.className = "flex items-center justify-between text-sm";
-        const priceEl = document.createElement("span");
-        priceEl.className = "text-lg font-semibold text-slate-900";
-        priceEl.textContent = product.price;
+        const price = document.createElement("span");
+        price.className = "text-lg font-semibold text-slate-900";
+        price.textContent = p.price;
         const btn = document.createElement("button");
         btn.className = "text-sm font-semibold text-[#2b0f84] hover:underline";
         btn.textContent = "Ver detalhes";
-        footer.append(priceEl, btn);
+        footer.append(price, btn);
 
-        content.append(badge, title, description, footer);
-        card.append(figure, content);
+        content.append(badge, title, desc, footer);
+        card.append(imgWrap, content);
         frag.appendChild(card);
     });
-    container.appendChild(frag);
+
+    c.appendChild(frag);
 }
 
 /* -------------------------
-   SLIDER: lógica simples e responsiva
+   Slider
    ------------------------- */
+function setupSlider() {
+    const track = $("reviews-slider-track");
+    if (!track) return;
+    track.style.transition = "transform 0.8s ease";
 
-// actualiza slidesPerView com base no viewport e reposiciona o slider
-function calculateSlidesPerView() {
-    slidesPerView = window.matchMedia("(min-width: 1024px)").matches ? 2 : 1;
+    const resize = () => {
+        slidesPerView = window.innerWidth >= 1024 ? 2 : 1;
+        currentSlide = 0;
+        updateSlider();
+        startAutoPlay();
+    };
+
+    window.addEventListener("resize", resize);
+    resize();
 }
 
-// actualiza a posição do slider com cálculo baseado na largura do wrapper
-function updateSliderPosition() {
-    const wrapper = $id("reviews-slider-wrapper");
-    const track = $id("reviews-slider-track");
-    if (!wrapper || !track) return;
+function updateSlider() {
+    const wrapper = $("reviews-slider-wrapper");
+    const track = $("reviews-slider-track");
     const step = wrapper.clientWidth / slidesPerView;
     track.style.transform = `translateX(-${currentSlide * step}px)`;
 }
 
-// inicia autoplay do slider (limpa intervalo anterior)
-function startSliderAutoPlay() {
+function startAutoPlay() {
     clearInterval(sliderInterval);
     sliderInterval = setInterval(() => {
-        const totalSlides = reviews.length;
-        const maxIndex = Math.max(0, totalSlides - slidesPerView);
+        const maxIndex = Math.max(0, reviews.length - slidesPerView);
         currentSlide = currentSlide >= maxIndex ? 0 : currentSlide + 1;
-        updateSliderPosition();
+        updateSlider();
     }, 4500);
 }
 
-// configura evento resize e inicia o slider
-function setupSlider() {
-    const track = $id("reviews-slider-track");
-    if (!track) return;
-    track.style.transition = "transform 0.8s ease";
-    const onResize = () => {
-        calculateSlidesPerView();
-        currentSlide = 0; // reset quando muda o tamanho
-        updateSliderPosition();
-        startSliderAutoPlay();
-    };
-    window.addEventListener("resize", onResize);
-    // chamada inicial
-    onResize();
+/* -------------------------
+   Share & Wishlist
+   ------------------------- */
+function applyWishlistVisuals(active) {
+    const buttons = document.querySelectorAll("[data-action='wishlist']");
+    buttons.forEach(btn => {
+        btn.setAttribute("aria-pressed", String(active));
+        btn.setAttribute("aria-label", active ? "Remover dos favoritos" : "Adicionar aos favoritos");
+        btn.classList.toggle("text-[#ef3f6b]", active);
+
+        const icon = btn.querySelector("i");
+        if (icon) {
+            icon.classList.remove("fa-solid", "fa-regular");
+            icon.classList.add(active ? "fa-solid" : "fa-regular");
+            icon.classList.add("fa-heart");
+        }
+    });
+
+    const badge = document.querySelector("[data-nav-count='favorites']");
+    if (badge) {
+        badge.textContent = active ? "1" : "0";
+        badge.classList.toggle("bg-[#ef3f6b]", active);
+        badge.classList.toggle("text-white", active);
+        badge.classList.toggle("bg-slate-200", !active);
+        badge.classList.toggle("text-slate-600", !active);
+    }
+
+    const navHeart = document.querySelector("[data-nav-heart='true']");
+    if (navHeart) {
+        navHeart.classList.toggle("border-[#ef3f6b]", active);
+        navHeart.classList.toggle("text-[#ef3f6b]", active);
+        navHeart.classList.toggle("border-slate-200", !active);
+        navHeart.classList.toggle("text-slate-400", !active);
+        navHeart.style.backgroundColor = active ? "rgba(239,63,107,0.12)" : "";
+        navHeart.setAttribute("aria-label", active ? "1 favorito" : "0 favoritos");
+
+        const navIcon = navHeart.querySelector("[data-nav-heart-icon='true']");
+        if (navIcon) {
+            navIcon.classList.remove("fa-solid", "fa-regular");
+            navIcon.classList.add(active ? "fa-solid" : "fa-regular");
+            navIcon.classList.add("fa-heart");
+        }
+    }
 }
 
-/* -------------------------
-   SHARE e WISHLIST
-   ------------------------- */
+function setWishlistActive(active) {
+    wishlistActive = active;
+    applyWishlistVisuals(active);
+}
 
 function initShareButtons() {
-    document.querySelectorAll("[data-action='share']").forEach((button) => {
-        button.addEventListener("click", async () => {
+    document.querySelectorAll("[data-action='share']").forEach(btn => {
+        btn.addEventListener("click", async () => {
             if (navigator.share) {
                 try {
-                    await navigator.share({ title: "Gira-discos Vinil", url: window.location.href });
-                } catch (error) {
-                    console.warn("Partilha cancelada", error);
-                }
+                    await navigator.share({ title: "Gira-discos Vinil", url: location.href });
+                } catch { }
             } else {
-                // fallback: copia para clipboard e indica estado
                 try {
-                    await navigator.clipboard?.writeText(window.location.href);
-                    button.dataset.state = "copied";
-                    setTimeout(() => button.removeAttribute("data-state"), 1500);
-                } catch (err) {
-                    console.warn("Não foi possível copiar o URL", err);
-                }
+                    await navigator.clipboard?.writeText(location.href);
+                    btn.dataset.state = "copied";
+                    setTimeout(() => btn.removeAttribute("data-state"), 1500);
+                } catch { }
             }
         });
     });
 }
 
 function initWishlistButtons() {
-    document.querySelectorAll("[data-action='wishlist']").forEach((button) => {
-        button.addEventListener("click", () => {
-            button.classList.toggle("text-[#2b0f84]");
-            button.classList.toggle("fill-[#2b0f84]/10");
+    const buttons = document.querySelectorAll("[data-action='wishlist']");
+    if (!buttons.length) {
+        wishlistActive = false;
+        return;
+    }
+
+    buttons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            setWishlistActive(!wishlistActive);
         });
+    });
+
+    setWishlistActive(false);
+}
+
+function setCartCount(count) {
+    cartCount = Math.max(0, count);
+    const badge = document.querySelector("[data-nav-count='cart']");
+    const navBtn = document.querySelector("[data-nav-control='cart']");
+    const active = cartCount > 0;
+
+    if (badge) {
+        badge.textContent = String(cartCount);
+        badge.classList.toggle("bg-[#2b0f84]", active);
+        badge.classList.toggle("text-white", active);
+        badge.classList.toggle("bg-slate-200", !active);
+        badge.classList.toggle("text-slate-600", !active);
+    }
+
+    if (navBtn) {
+        navBtn.style.borderColor = active ? "#2b0f84" : "";
+        navBtn.style.backgroundColor = active ? "rgba(43,15,132,0.08)" : "";
+        navBtn.style.color = active ? "#2b0f84" : "";
+        const label = cartCount === 1 ? "1 item no carrinho" : `${cartCount} itens no carrinho`;
+        navBtn.setAttribute("aria-label", label);
+
+        const navIcon = navBtn.querySelector("[data-nav-cart-icon='true']");
+        if (navIcon) {
+            navIcon.classList.remove("fa-regular");
+            navIcon.classList.add("fa-solid", "fa-cart-shopping");
+        }
+    }
+}
+
+function initAddToCartButton() {
+    const btn = document.querySelector("[data-action='add-to-cart']");
+    if (!btn) return;
+
+    btn.addEventListener("click", () => {
+        setCartCount(cartCount + 1);
     });
 }
 
 /* -------------------------
-   Inicialização global
+   Init
    ------------------------- */
-
 function initApp() {
-    // componentes visuais / dados
     initViewer();
     renderPresetButtons();
     renderCustomMaterialControls();
@@ -680,12 +653,11 @@ function initApp() {
     renderShippingOptions();
     renderReviews();
     renderSuggestedProducts();
-
-    // widgets interactivos
     setupSlider();
     initShareButtons();
     initWishlistButtons();
+    setCartCount(0);
+    initAddToCartButton();
 }
 
-// inicia quando DOM estiver carregado
 document.addEventListener("DOMContentLoaded", initApp);

@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/5bd296cf13.js" crossorigin="anonymous"></script>
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
     <script>
@@ -29,16 +31,34 @@
         <header class="border-b bg-white">
             <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-6 px-4 py-5">
                 <a href="index.html" class="flex items-center gap-3">
-                    <img src="./assets/images/La-redoute-logo.png" alt="La Redoute" class="h-10 w-auto" />
+                    <img src="./assets/images/La-redoute-logo.png" alt="La Redoute" class="h-12 w-auto" />
                 </a>
-                <nav class="ml-auto flex flex-wrap items-center gap-5 text-sm text-slate-600">
-                    <a href="#" class="hover:text-slate-900">Natal</a>
-                    <a href="#" class="hover:text-slate-900">Black Friday</a>
-                    <a href="#" class="hover:text-slate-900">Moveis</a>
-                    <a href="#" class="hover:text-slate-900">Acessórios</a>
-                    <a href="#" class="hover:text-slate-900">Promoções</a>
-                    <span class="text-slate-400">Coleção</span>
-                </nav>
+                <div class="ml-auto flex items-center gap-5">
+                    <nav class="flex flex-wrap items-center gap-5 text-sm text-slate-600">
+                        <a href="#" class="hover:text-slate-900">Natal</a>
+                        <a href="#" class="hover:text-slate-900">Black Friday</a>
+                        <a href="#" class="hover:text-slate-900">Moveis</a>
+                        <a href="#" class="hover:text-slate-900">Acessórios</a>
+                        <a href="#" class="hover:text-slate-900">Promoções</a>
+                        <span class="text-slate-400">Coleção</span>
+                    </nav>
+                    <div class="flex items-center gap-3 pl-8">
+                        <span data-nav-heart="true"
+                            class="pointer-events-none relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400"
+                            aria-label="0 favoritos">
+                            <i data-nav-heart-icon="true" class="fa-regular fa-heart text-[1.15rem]"></i>
+                            <span data-nav-count="favorites"
+                                class="absolute -right-1.5 -top-1.5 flex min-h-[1.3rem] min-w-[1.3rem] items-center justify-center rounded-full bg-slate-200 px-1.5 text-[10px] font-semibold text-slate-600">0</span>
+                        </span>
+                        <button type="button" data-nav-control="cart"
+                            class="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:text-[#2b0f84]"
+                            aria-label="0 itens no carrinho">
+                            <i data-nav-cart-icon="true" class="fa-solid fa-cart-shopping text-[1.15rem]"></i>
+                            <span data-nav-count="cart"
+                                class="absolute -right-1.5 -top-1.5 flex min-h-[1.3rem] min-w-[1.3rem] items-center justify-center rounded-full bg-slate-200 px-1.5 text-[10px] font-semibold text-slate-600">0</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -56,11 +76,7 @@
                     <a href="produto.html"
                         class="inline-flex items-center gap-2 rounded-full bg-[#2b0f84] px-6 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-[#3a1cb0]">
                         Ver o gira-discos
-                        <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="1.5"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M5 12h14" />
-                            <path d="M12 5l7 7-7 7" />
-                        </svg>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
                     </a>
                 </div>
             </section>
