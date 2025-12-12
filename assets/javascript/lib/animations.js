@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+const PLAY_MUSIC_AUDIO_URL = new URL('../../sounds/music.ogg', import.meta.url).href;
+
 export class AnimationManager {
     constructor(model, gltf) {
         this.model = model;
@@ -7,6 +9,7 @@ export class AnimationManager {
         this.animations = {};
         this.currentActions = {};
         this.clock = new THREE.Clock();
+        this.animationAudio = {};
 
         if (gltf?.animations?.length) {
             this.mixer = new THREE.AnimationMixer(model);
@@ -16,6 +19,15 @@ export class AnimationManager {
 
         // Estado para controlar alternância de animações
         this.objectStates = {};
+        this.setupAnimationAudio();
+    }
+
+    setupAnimationAudio() {
+        if (typeof Audio === 'undefined') return;
+        const track = new Audio(PLAY_MUSIC_AUDIO_URL);
+        track.loop = true;
+        track.preload = 'auto';
+        this.animationAudio.PlayMusic = track;
     }
 
     playAnimation(
@@ -51,6 +63,7 @@ export class AnimationManager {
 
         action.timeScale = timeScale;
         action.play();
+        this.startAudioForAnimation(name);
 
         if (typeof onComplete === 'function') {
             const handleFinished = event => {
@@ -72,6 +85,7 @@ export class AnimationManager {
         if (action) {
             action.stop();
             delete this.currentActions[name];
+            this.pauseAudioForAnimation(name, { reset: true });
         }
     }
 
@@ -79,6 +93,7 @@ export class AnimationManager {
         const action = this.currentActions[name];
         if (action) {
             action.paused = true;
+            this.pauseAudioForAnimation(name);
         }
         return action;
     }
@@ -91,12 +106,14 @@ export class AnimationManager {
             }
             action.paused = false;
             action.play();
+            this.startAudioForAnimation(name);
         }
         return action;
     }
 
     stopAllAnimations() {
         Object.keys(this.currentActions).forEach(name => this.stopAnimation(name));
+        Object.keys(this.animationAudio).forEach(name => this.pauseAudioForAnimation(name, { reset: true }));
     }
 
     update() {
@@ -117,6 +134,24 @@ export class AnimationManager {
             this.mixer.stopAllAction();
             this.mixer.uncacheRoot(this.model);
         }
+        Object.values(this.animationAudio).forEach(audio => {
+            audio.pause();
+            audio.currentTime = 0;
+        });
+    }
+
+    startAudioForAnimation(name) {
+        const audio = this.animationAudio?.[name];
+        if (!audio || !audio.paused) return;
+        const playPromise = audio.play();
+        playPromise?.catch(error => console.warn(`⚠️ Não foi possível reproduzir áudio para ${name}`, error));
+    }
+
+    pauseAudioForAnimation(name, { reset = false } = {}) {
+        const audio = this.animationAudio?.[name];
+        if (!audio) return;
+        audio.pause();
+        if (reset) audio.currentTime = 0;
     }
 }
 
