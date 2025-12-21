@@ -1,8 +1,14 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
+// ============================
+// Função para normalizar transparência dos materiais
+// ============================
 function normalizeMaterialTransparency(obj) {
     if (!obj || !obj.material) return;
 
+    // ============================
+    // Atualiza propriedades do material
+    // ============================
     const updateMaterial = (material) => {
         if (!material) return;
         if (material.opacity < 1 || material.alphaMode === "BLEND" || material.transmission > 0) {
@@ -12,6 +18,9 @@ function normalizeMaterialTransparency(obj) {
         material.needsUpdate = true;
     };
 
+    // ============================
+    // Aplica atualização para todos os materiais
+    // ============================
     if (Array.isArray(obj.material)) {
         obj.material.forEach(updateMaterial);
     } else {
@@ -19,25 +28,41 @@ function normalizeMaterialTransparency(obj) {
     }
 }
 
+// ============================
+// Função para carregar modelos GLTF/GLB
+// ============================
 export function loadModel(path, options = {}) {
     const { scale = 1, position = [0, 0, 0], returnGltf = false } = options;
 
     return new Promise((resolve, reject) => {
+        // ============================
+        // Inicializa o loader GLTF
+        // ============================
         const loader = new GLTFLoader();
+
         loader.load(
             path,
             (gltf) => {
                 const model = gltf.scene;
+
+                // ============================
+                // Aplica escala e posição
+                // ============================
                 model.scale.set(scale, scale, scale);
                 model.position.set(...position);
 
+                // ============================
+                // Normaliza transparência de todos os meshes
+                // ============================
                 model.traverse((child) => {
                     if (child.isMesh) {
                         normalizeMaterialTransparency(child);
                     }
                 });
 
-                // Se returnGltf for true, retorna o objeto completo com animações
+                // ============================
+                // Retorna GLTF completo ou apenas o modelo
+                // ============================
                 if (returnGltf) {
                     resolve(gltf);
                 } else {
@@ -52,8 +77,14 @@ export function loadModel(path, options = {}) {
     });
 }
 
+// ============================
+// Caminho do modelo de toca-discos
+// ============================
 const modelUrl = new URL("../../models/Final.glb", import.meta.url).href;
 
+// ============================
+// Função para carregar o modelo de toca-discos
+// ============================
 export async function loadRecordPlayerModel(withAnimations = false) {
     return loadModel(modelUrl, {
         scale: 12,
@@ -62,6 +93,9 @@ export async function loadRecordPlayerModel(withAnimations = false) {
     });
 }
 
+// ============================
+// Função para acessar partes específicas do modelo
+// ============================
 export function getRecordPlayerParts(model) {
     return {
         base: model.getObjectByName('Base'),
