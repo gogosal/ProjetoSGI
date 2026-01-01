@@ -7,7 +7,7 @@ import { materialPresets } from "../lib/textures.js";
 import { loadDefaultHDRI } from "../lib/hdri.js";
 import { loadRecordPlayerModel, getRecordPlayerParts } from "../lib/models.js";
 import { RaycastManager } from "../lib/raycast.js";
-import { AnimationManager, handleObjectClick } from "../lib/animations.js";
+import { AnimationManager, handleObjectClick, startAutoplayAnimations } from "../lib/animations.js";
 
 // ============================
 // Classe principal do Viewer
@@ -111,6 +111,9 @@ export class RecordPlayerViewer {
 
                 this.animationManager = new AnimationManager(model, gltf);
                 this.animationManager?.setAudioMuted?.(this.audioMuted);
+
+                // Autoplay (loop) de animações que devem iniciar logo
+                startAutoplayAnimations(this.animationManager, model);
 
                 this.modelParts = getRecordPlayerParts(model);
 

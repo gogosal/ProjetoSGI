@@ -98,7 +98,6 @@ export class AnimationManager {
         }
 
         this.currentActions[name] = action;
-        console.log(`▶️ Reproduzindo animação: ${name}`);
         return action;
     }
 
@@ -237,12 +236,16 @@ export class AnimationManager {
 // ============================
 export const animationMappings = {
     DustCover: {
-        animations: ['Open.001'],
+        animations: ['Open'],
         options: { loop: false, timeScale: 1, clampWhenFinished: true },
         toggleReversed: true
     },
+    fanblades002: {
+        animations: ['FanOn'],
+        options: { loop: true, timeScale: 1, clampWhenFinished: true },
+    },
     Gaveta: {
-        animations: ['Open'],
+        animations: ['OpenGaveta'],
         options: { loop: false, timeScale: 1, clampWhenFinished: true },
         toggleReversed: true
     },
@@ -256,7 +259,71 @@ export const animationMappings = {
             pauseWhenReversed: true
         }
     },
+    Fita1: {
+        animations: ['Fita1'],
+        options: { loop: true, timeScale: 1, clampWhenFinished: false },
+        autoPlay: true,
+    },
+    Fita2: {
+        animations: ['Fita2'],
+        options: { loop: true, timeScale: 1, clampWhenFinished: false },
+        autoPlay: true,
+    },
+    Fita3: {
+        animations: ['Fita3'],
+        options: { loop: true, timeScale: 1, clampWhenFinished: false },
+        autoPlay: true,
+    },
+    Fita4: {
+        animations: ['Fita4'],
+        options: { loop: true, timeScale: 1, clampWhenFinished: false },
+        autoPlay: true,
+    },
+    fan: {
+        animations: ['Fan'],
+        options: { loop: true, timeScale: 1, clampWhenFinished: false },
+        autoPlay: true,
+    },
 };
+
+// ============================
+// Inicia animações em autoplay (loop) ao carregar
+// ============================
+export function startAutoplayAnimations(animationManager, modelRoot) {
+    if (!animationManager || !modelRoot) return;
+
+    Object.entries(animationMappings).forEach(([objectName, mapping]) => {
+        if (!mapping?.autoPlay) return;
+
+        const objectExists = typeof modelRoot.getObjectByName === 'function'
+            ? Boolean(modelRoot.getObjectByName(objectName))
+            : true;
+
+        if (!objectExists) {
+            console.warn(`⚠️ Autoplay: objeto "${objectName}" não encontrado no modelo.`);
+            return;
+        }
+
+        const animationNames = Array.isArray(mapping.animations)
+            ? mapping.animations
+            : mapping.animation
+                ? [mapping.animation]
+                : [];
+
+        const animationName = animationNames[0];
+        if (!animationName) return;
+
+        if (animationManager.isPlaying?.(animationName)) return;
+
+        const baseOptions = mapping.options || {};
+        animationManager.playAnimation(animationName, {
+            ...baseOptions,
+            loop: true,
+            clampWhenFinished: false,
+            startAtEnd: false,
+        });
+    });
+}
 
 // ============================
 // Dispara animação encadeada
