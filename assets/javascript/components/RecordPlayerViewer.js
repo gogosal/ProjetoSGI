@@ -33,6 +33,15 @@ export class RecordPlayerViewer {
         this.audioMuted = false;
         this.audioStateHandler = null;
 
+        this.mainLight = null;
+        this.baseLightIntensity = 3;
+        this.lightingIntensity = 1;
+        this.baseExposure = 1.6;
+        this.environmentTexture = null;
+        this.baseEnvironmentIntensity = 1;
+        this.backgroundDarkColor = new THREE.Color(0x050505);
+        this.backgroundLightColor = new THREE.Color(0xffffff);
+
         // Setup inicial
         this.setupRenderer();
         this.setupScene();
@@ -55,6 +64,7 @@ export class RecordPlayerViewer {
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.6;
+        this.baseExposure = this.renderer.toneMappingExposure;
         this.renderer.setPixelRatio(window.devicePixelRatio);
 
         this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
@@ -70,10 +80,17 @@ export class RecordPlayerViewer {
     // ============================
     setupScene() {
         this.scene = new THREE.Scene();
+        this.scene.background = this.backgroundLightColor.clone();
+        this.scene.environmentIntensity = 1;
+        this.baseEnvironmentIntensity = this.scene.environmentIntensity;
 
         const pointLight = new THREE.PointLight(0xffffff, 3);
         pointLight.position.set(4, 4, 4);
         this.scene.add(pointLight);
+
+        this.mainLight = pointLight;
+        this.baseLightIntensity = pointLight.intensity;
+        this.setLightingIntensity(this.lightingIntensity);
     }
 
     // ============================
@@ -101,8 +118,13 @@ export class RecordPlayerViewer {
             if (this.isDisposed) return;
 
             if (hdr) {
+                this.environmentTexture = hdr;
                 this.scene.environment = hdr;
-                this.scene.background = new THREE.Color(0xffffff);
+                if (typeof this.scene.environmentIntensity !== "number") {
+                    this.scene.environmentIntensity = 1;
+                }
+                this.baseEnvironmentIntensity = this.scene.environmentIntensity;
+                this.scene.background = this.backgroundLightColor.clone();
             }
 
             if (gltf) {
@@ -132,6 +154,7 @@ export class RecordPlayerViewer {
             }
 
             this.startRenderLoop();
+            this.setLightingIntensity(this.lightingIntensity);
         });
     }
 
@@ -252,5 +275,49 @@ export class RecordPlayerViewer {
 
     notifyAudioStateChange() {
         this.audioStateHandler?.(this.audioMuted);
+    }
+
+    // ============================
+    // Controlo de iluminação
+    // ============================
+    setLightingIntensity(multiplier = 1) {
+        if (typeof multiplier !== "number" || Number.isNaN(multiplier)) {
+            return this.lightingIntensity;
+        }
+
+        const clamped = Math.min(Math.max(multiplier, 0), 2);
+        this.lightingIntensity = clamped;
+
+        if (this.mainLight) {
+            this.mainLight.intensity = this.baseLightIntensity * clamped;
+            this.mainLight.visible = clamped > 0.001;
+        }
+
+        if (this.scene) {
+            if (clamped <= 0.001 && this.environmentTexture) {
+                this.scene.environment = null;
+            } else if (this.environmentTexture) {
+                this.scene.environment = this.environmentTexture;
+            }
+
+            if (typeof this.scene.environmentIntensity === "number") {
+                this.scene.environmentIntensity = this.baseEnvironmentIntensity * clamped;
+            }
+
+            const clampedBgMix = Math.min(clamped, 1);
+            const backgroundColor = this.backgroundDarkColor.clone().lerp(this.backgroundLightColor, clampedBgMix);
+            this.scene.background = backgroundColor;
+        }
+
+        if (this.renderer) {
+            const exposureBoost = 0.05 + clamped * 0.95;
+            this.renderer.toneMappingExposure = Math.max(this.baseExposure * exposureBoost, 0.02);
+        }
+
+        return this.lightingIntensity;
+    }
+
+    getLightingIntensity() {
+        return this.lightingIntensity;
     }
 }
